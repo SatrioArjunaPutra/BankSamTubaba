@@ -1,0 +1,13 @@
+{
+  "wilayah": "Kabupaten Tulang Bawang Barat, Lampung",
+  "diambil": "2026-10-31",
+  "sistem_koordinat": "WGS84 (EPSG:4326), GeoJSON longitude-latitude",
+  "ketelitian_tampilan": "generalization maxAllowableOffset 0.00002 derajat; geometryPrecision 6",
+  "atribusi": "Badan Informasi Geospasial; layanan publik Geoportal Kementerian Pertanian",
+  "catatan": "Visualisasi administrasi, bukan penetapan batas hukum; edisi lapisan dapat berbeda. Titik bank berasal dari registri DLH 2026 dan tidak digeser mengikuti poligon.",
+  "lapisan": [
+    {"file":"tubaba-kabupaten.geojson","jumlah":1,"edisi":"Oktober 2020","url":"https://geoservices.big.go.id/gis/rest/services/BAPANAS/Batas_Administrasi/MapServer/0"},
+    {"file":"tubaba-kecamatan.geojson","jumlah":9,"edisi":"2022 revisi 27 Desember 2022","url":"https://geoservices.big.go.id/gis/rest/services/BAPANAS/Batas_Administrasi/MapServer/1"},
+    {"file":"tubaba-desa.geojson","jumlah":103,"edisi":"Semester I 2025","url":"https://geoportal.pertanian.go.id/arcgis/rest/services/Hosted/Batas_Administrasi_Desa/FeatureServer/0"}
+  ]
+}

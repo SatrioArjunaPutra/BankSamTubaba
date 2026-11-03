@@ -1,0 +1,10 @@
+# Data mentah berisi data pribadi (no. HP, link dokumen) - jangan di-commit
+data-private/
+
+# Environment berisi rahasia tidak masuk Git; template tanpa rahasia tetap boleh.
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.csv
+**/*.csv

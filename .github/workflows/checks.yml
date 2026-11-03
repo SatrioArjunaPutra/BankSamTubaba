@@ -1,0 +1,137 @@
+name: Checks
+on:
+  pull_request:
+  push:
+    branches: [main, sprint-v2, sprint-v3]
+permissions:
+  contents: read
+concurrency:
+  group: checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      matrix:
+        database: [sqlite, pgsql]
+    services:
+      pgsql:
+        image: postgres:17
+        env:
+          POSTGRES_DB: banksampah_ci
+          POSTGRES_USER: sail
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports: ['5432:5432']
+        options: --health-cmd="pg_isready -U sail -d banksampah_ci" --health-interval=5s --health-timeout=5s --health-retries=12
+    defaults:
+      run:
+        working-directory: api-backend
+    env:
+      DB_CONNECTION: ${{ matrix.database }}
+      DB_DATABASE: ${{ matrix.database == 'pgsql' && 'banksampah_ci' || ':memory:' }}
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_USERNAME: sail
+      DB_PASSWORD: ''
+      DB_URL: ''
+    steps:
+      - uses: actions/checkout@v7
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: gd, pdo_sqlite, pdo_pgsql, intl, mbstring, zip
+          coverage: none
+      - run: composer install --no-interaction --prefer-dist
+      - run: cp .env.example .env && php artisan key:generate
+      - run: php vendor/phpunit/phpunit/phpunit
+
+  web:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build
+
+  mobile-and-contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      pgsql:
+        image: postgres:17
+        env:
+          POSTGRES_DB: banksampah_contract
+          POSTGRES_USER: sail
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports: ['5432:5432']
+        options: --health-cmd="pg_isready -U sail -d banksampah_contract" --health-interval=5s --health-timeout=5s --health-retries=12
+    env:
+      APP_ENV: local
+      DB_CONNECTION: pgsql
+      DB_DATABASE: banksampah_contract
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_USERNAME: sail
+      DB_PASSWORD: ''
+      DB_URL: ''
+    steps:
+      - uses: actions/checkout@v7
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: gd, pdo_pgsql, intl, mbstring, zip
+          coverage: none
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.7'
+          cache: true
+      - name: Generate an ephemeral demo password
+        run: |
+          contract_password=$(openssl rand -hex 24)
+          echo "::add-mask::$contract_password"
+          echo "SEED_DEMO_PASSWORD=$contract_password" >> "$GITHUB_ENV"
+      - run: composer install --no-interaction --prefer-dist
+        working-directory: api-backend
+      - name: Prepare isolated contract database
+        working-directory: api-backend
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+          php artisan migrate --force
+          php artisan db:seed --class=DemoSeeder --force
+          php artisan db:seed --class=BeritaDemoSeeder --force
+          php artisan storage:link
+          php artisan serve --host=127.0.0.1 --port=8000 > /tmp/banksampah-api.log 2>&1 &
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:8000/api/health; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/banksampah-api.log
+          exit 1
+      - run: flutter pub get
+        working-directory: mobile
+      - run: flutter analyze
+        working-directory: mobile
+      - run: flutter test
+        working-directory: mobile
+      - name: Real API contract tests (not skipped)
+        working-directory: mobile
+        run: flutter test test/kontrak_api_test.dart --dart-define=KONTRAK_API_URL=http://127.0.0.1:8000/api/v1 --dart-define=KONTRAK_PASSWORD="$SEED_DEMO_PASSWORD"
+
+  container:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - run: docker build -t banksampah-ci ./api-backend

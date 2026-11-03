@@ -1,0 +1,5 @@
+*
+!.gitignore
+!preloved/
+!preloved/**
+
