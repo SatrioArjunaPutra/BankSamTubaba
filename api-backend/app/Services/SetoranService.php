@@ -17,7 +17,10 @@ use Illuminate\Validation\ValidationException;
 
 class SetoranService
 {
-    public function __construct(private PenjemputanService $penjemputan) {}
+    public function __construct(
+        private PenjemputanService $penjemputan,
+        private PemberitahuanService $pemberitahuan,
+    ) {}
 
     /**
      * Catat setoran di bank sampah milik pencatat (operator atau bentor).
@@ -103,6 +106,8 @@ class SetoranService
             $setoran->saldo_setelah = $nasabah->saldo;
             $setoran->save();
 
+            $this->pemberitahuan->setoranDicatat($setoran, $pencatat, $nasabah->saldo);
+
             return $setoran->setRelation('nasabah', $nasabah);
         }, 3);
     }
@@ -160,6 +165,8 @@ class SetoranService
                 'dibatalkan_oleh' => $operator->id,
                 'alasan_batal' => $alasan,
             ])->save();
+
+            $this->pemberitahuan->setoranDibatalkan($baris);
 
             return $baris;
         }, 3);

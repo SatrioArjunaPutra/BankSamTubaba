@@ -15,6 +15,7 @@ import '../warga/warga_shell.dart' show KartuSetoran;
 import 'bs_providers.dart';
 import 'nasabah_tab.dart';
 import 'reset_password.dart';
+import '../pemberitahuan/pemberitahuan_pages.dart';
 
 /// Kerangka operator bank sampah: Beranda, Setoran, Jemput, Bentor, Lainnya.
 class BsShell extends ConsumerStatefulWidget {
@@ -62,11 +63,18 @@ class _BsShellState extends ConsumerState<BsShell> {
         judul: bank?.nama ?? 'Bank Sampah',
         subjudul: 'Pengelola · Tubaba',
         ikon: Icons.storefront_outlined,
-        aksi: IconButton(
-          style: gayaTombolKepala,
-          tooltip: 'Permintaan jemput',
-          onPressed: () => setState(() => _tab = 2),
-          icon: const Icon(Icons.notifications_none_outlined),
+        aksi: LoncengPemberitahuan(
+          gaya: gayaTombolKepala,
+          onBuka: (p) {
+            if (p.tujuan.containsKey('penarikan')) {
+              context.push('/bs/penarikan');
+            } else if (p.tujuan.containsKey('setoran')) {
+              setState(() => _tab = 1);
+              _setoran.currentState?.segarkan();
+            } else if (p.tujuan.containsKey('penjemputan')) {
+              setState(() => _tab = 2);
+            }
+          },
         ),
       ),
       body: PindahTab(

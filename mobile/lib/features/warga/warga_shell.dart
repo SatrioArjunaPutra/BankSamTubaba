@@ -20,6 +20,8 @@ import '../berita/berita_repository.dart';
 import '../preloved/chat_pages.dart';
 import '../preloved/preloved_tab.dart';
 import 'warga_providers.dart';
+import '../pemberitahuan/pemberitahuan_pages.dart';
+import '../../core/models/pemberitahuan.dart';
 
 /// Kerangka warga: Beranda, Jemput, Preloved, Chat, Akun.
 class WargaShell extends ConsumerStatefulWidget {
@@ -57,6 +59,20 @@ class _WargaShellState extends ConsumerState<WargaShell> {
     }
   }
 
+  /// Buka halaman yang dirujuk pemberitahuan warga.
+  void _bukaPemberitahuan(Pemberitahuan p) {
+    if (p.tujuan.containsKey('penjemputan')) {
+      setState(() => _tab = 1);
+      _daftarJemput.currentState?.segarkan();
+    } else if (p.tujuan.containsKey('setoran')) {
+      context.push('/warga/riwayat');
+    } else if (p.tujuan.containsKey('penarikan')) {
+      context.push('/warga/penarikan');
+    } else if (p.tujuan.containsKey('preloved')) {
+      context.push('/warga/preloved/saya');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final halaman = [
@@ -64,6 +80,7 @@ class _WargaShellState extends ConsumerState<WargaShell> {
         bukaPenjemputan: () => setState(() => _tab = 1),
         bukaPreloved: () => setState(() => _tab = 2),
         mintaJemput: _mintaJemput,
+        bukaPemberitahuan: _bukaPemberitahuan,
       ),
       DaftarJemputWarga(daftarKey: _daftarJemput),
       PrelovedTab(key: _preloved),
@@ -144,10 +161,12 @@ class BerandaWarga extends ConsumerStatefulWidget {
     required this.bukaPenjemputan,
     required this.bukaPreloved,
     required this.mintaJemput,
+    required this.bukaPemberitahuan,
   });
   final VoidCallback bukaPenjemputan;
   final VoidCallback bukaPreloved;
   final VoidCallback mintaJemput;
+  final ValueChanged<Pemberitahuan> bukaPemberitahuan;
 
   @override
   ConsumerState<BerandaWarga> createState() => _BerandaWargaState();
@@ -187,7 +206,7 @@ class _BerandaWargaState extends ConsumerState<BerandaWarga> {
         scrollCacheExtent: const ScrollCacheExtent.pixels(2000),
         padding: paddingAman(context, dasar: const EdgeInsets.only(bottom: 20)),
         children: [
-          const _HeaderBeranda(),
+          _HeaderBeranda(bukaPemberitahuan: widget.bukaPemberitahuan),
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
             child: Column(
@@ -265,7 +284,9 @@ class _BerandaWargaState extends ConsumerState<BerandaWarga> {
 
 /// Header hijau penuh sampai bilah status: cari, merek, ilustrasi bentor, lalu kartu sapaan dan saldo.
 class _HeaderBeranda extends ConsumerWidget {
-  const _HeaderBeranda();
+  const _HeaderBeranda({required this.bukaPemberitahuan});
+
+  final ValueChanged<Pemberitahuan> bukaPemberitahuan;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -344,7 +365,13 @@ class _HeaderBeranda extends ConsumerWidget {
                         ),
                       ),
                     ),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: 8),
+                    Material(
+                      color: Colors.white,
+                      shape: const CircleBorder(),
+                      child: LoncengPemberitahuan(onBuka: bukaPemberitahuan),
+                    ),
+                    const SizedBox(width: 8),
                     Material(
                       color: Colors.white,
                       shape: const CircleBorder(),

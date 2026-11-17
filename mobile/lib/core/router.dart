@@ -22,6 +22,7 @@ import 'repositories.dart';
 import 'models/preloved.dart';
 import 'models/transaksi.dart';
 import 'models/user.dart';
+import '../features/pemberitahuan/pemberitahuan_pages.dart';
 
 /// Halaman awal tiap role.
 String berandaRole(Role role) => switch (role) {
@@ -84,6 +85,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(path: 'perangkat', builder: (_, _) => const PerangkatPage()),
           GoRoute(path: 'hapus', builder: (_, _) => const HapusAkunPage()),
           GoRoute(path: 'privasi', builder: (_, _) => const KebijakanPrivasiPage()),
+          GoRoute(path: 'pemberitahuan', builder: (_, _) => const PemberitahuanPage()),
         ],
       ),
       GoRoute(

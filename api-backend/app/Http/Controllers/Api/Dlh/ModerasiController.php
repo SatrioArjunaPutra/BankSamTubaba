@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\LaporanPerBarangResource;
 use App\Http\Resources\PrelovedResource;
 use App\Models\PrelovedItem;
+use App\Services\PemberitahuanService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -78,7 +79,7 @@ class ModerasiController extends Controller
      * Sembunyikan → laporan baru jadi "ditindak"; tampilkan lagi → laporan
      * baru jadi "diabaikan".
      */
-    public function ubahStatus(Request $request, PrelovedItem $prelovedItem)
+    public function ubahStatus(Request $request, PrelovedItem $prelovedItem, PemberitahuanService $pemberitahuan)
     {
         $data = $request->validate(['status' => ['required', 'in:disembunyikan,tersedia']]);
         $status = StatusPreloved::from($data['status']);
@@ -90,9 +91,13 @@ class ModerasiController extends Controller
             ]);
         }
 
-        DB::transaction(function () use ($prelovedItem, $status) {
+        DB::transaction(function () use ($prelovedItem, $status, $pemberitahuan) {
             $prelovedItem->status = $status;
             $prelovedItem->save();
+
+            if ($status === StatusPreloved::Disembunyikan) {
+                $pemberitahuan->barangDisembunyikan($prelovedItem);
+            }
 
             $prelovedItem->laporan()
                 ->where('status', StatusLaporan::Baru->value)

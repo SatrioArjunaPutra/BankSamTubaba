@@ -15,6 +15,7 @@ import '../../core/theme.dart';
 import '../../core/widgets.dart';
 import '../akun/akun_pages.dart';
 import '../auth/auth_controller.dart';
+import '../pemberitahuan/pemberitahuan_pages.dart';
 
 final armadaBentorProvider = FutureProvider.autoDispose<Armada>(
   (ref) => ref.watch(bentorRepositoryProvider).armada(),
@@ -74,7 +75,20 @@ class _BentorBerandaPageState extends ConsumerState<BentorBerandaPage> {
         judul: user?.name ?? 'Bentor',
         subjudul: 'Bentor · ${user?.bankSampah?.nama ?? 'Bank sampah'}',
         inisial: 'BT',
-        aksi: armada.when(
+        aksi: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            LoncengPemberitahuan(
+              gaya: gayaTombolKepala,
+              onBuka: (_) {
+                setState(() => _tab = 0);
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (mounted) _daftar.currentState?.segarkan();
+                });
+              },
+            ),
+            const SizedBox(width: 6),
+            armada.when(
           loading: () => const SizedBox(
             width: 40,
             height: 20,
@@ -114,6 +128,8 @@ class _BentorBerandaPageState extends ConsumerState<BentorBerandaPage> {
               ],
             ),
           ),
+        ),
+          ],
         ),
       ),
       bottomNavigationBar: NavigasiPill(

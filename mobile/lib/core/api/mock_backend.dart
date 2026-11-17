@@ -17,6 +17,7 @@ class MockBackend implements HttpClientAdapter {
   final _password = <int, String>{};
   final _token = <String, int>{};
   final _sesi = <String, Map<String, dynamic>>{};
+  final _pemberitahuan = <Map<String, dynamic>>[];
   final _bank = <int, Map<String, dynamic>>{};
   final _jenis = <int, Map<String, dynamic>>{};
   final _harga = <String, double>{}; // "bankId:jenisId"
@@ -142,6 +143,15 @@ class MockBackend implements HttpClientAdapter {
     );
     _jemput.add(_jemputJson(_idBaru, 1, 1, 'diajukan'));
     _jemput.add(_jemputJson(_idBaru, 2, 1, 'dijadwalkan', armadaId: 1));
+    _beritahu(1, 'setoran_tercatat', 'Setoran tercatat',
+        '+Rp 35.000 dari 15 kg sampah di Bank Sampah Demo Panaragan.', {'setoran': 1},
+        dibaca: true);
+    _beritahu(1, 'jemput_dijadwalkan', 'Penjemputan dijadwalkan',
+        'Bentor Pak Bentor (BE 1234 XY) akan menjemput besok pagi.', {'penjemputan': _jemput.first['id'] as int});
+    _beritahu(3, 'jemput_baru', 'Permintaan jemput baru',
+        'Siti Warga minta dijemput di Jl. Melati 1, Panaragan.', {'penjemputan': _jemput.first['id'] as int});
+    _beritahu(4, 'tugas_baru', 'Tugas jemput baru',
+        'Budi Warga, Jl. Kenanga. Jadwal besok pagi.', {'tugas': _jemput.last['id'] as int});
     _tarik.add({
       'id': _idBaru,
       'warga_id': 2,
@@ -200,6 +210,21 @@ class MockBackend implements HttpClientAdapter {
       'harus_ganti_password': false,
     };
     _password[id] = 'password';
+  }
+
+  void _beritahu(int userId, String jenis, String judul, String isi, Map<String, int> tujuan, {bool dibaca = false}) {
+    final sekarang = DateTime.now().toUtc().toIso8601String();
+    _pemberitahuan.add({
+      'id': _idBaru,
+      'user_id': userId,
+      'jenis': jenis,
+      'judul': judul,
+      'isi': isi,
+      'tujuan': tujuan,
+      'dibaca': dibaca,
+      'dibaca_at': dibaca ? sekarang : null,
+      'dibuat_at': sekarang,
+    });
   }
 
   Map<String, dynamic> _ringkasBank(int id) => {
@@ -526,6 +551,32 @@ class MockBackend implements HttpClientAdapter {
         },
       );
       return _sukses('Daftar perangkat berhasil dimuat.', milik.toList());
+    }
+    if (m == 'GET' && p == '/pemberitahuan') {
+      final milik = _pemberitahuan.where((n) => n['user_id'] == saya).toList()
+        ..sort((a, b) => (b['id'] as int).compareTo(a['id'] as int));
+      return _halaman('Pemberitahuan berhasil dimuat.', milik, o);
+    }
+    if (m == 'GET' && p == '/pemberitahuan/belum-dibaca') {
+      return _sukses('Jumlah pemberitahuan belum dibaca.', {
+        'jumlah': _pemberitahuan.where((n) => n['user_id'] == saya && n['dibaca'] != true).length,
+      });
+    }
+    if (m == 'POST' && p == '/pemberitahuan/baca-semua') {
+      final belum = _pemberitahuan.where((n) => n['user_id'] == saya && n['dibaca'] != true).toList();
+      for (final n in belum) {
+        n['dibaca'] = true;
+      }
+      return _sukses('Semua pemberitahuan ditandai dibaca.', {'jumlah': belum.length});
+    }
+    final bacaSatu = RegExp(r'^/pemberitahuan/(\d+)/baca$').firstMatch(p);
+    if (m == 'POST' && bacaSatu != null) {
+      final n = _pemberitahuan
+          .where((n) => n['id'] == int.parse(bacaSatu.group(1)!) && n['user_id'] == saya)
+          .firstOrNull;
+      if (n == null) return _gagal(404, 'Data tidak ditemukan.');
+      n['dibaca'] = true;
+      return _sukses('Pemberitahuan ditandai dibaca.', n);
     }
     final hapusSesi = RegExp(r'^/me/perangkat/(\d+)$').firstMatch(p);
     if (m == 'DELETE' && hapusSesi != null) {

@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Pemberitahuan;
 use App\Support\GambarAman;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Http\UploadedFile;
@@ -13,6 +14,9 @@ Artisan::command('inspire', function () {
 
 // Hapus token Sanctum yang sudah kedaluwarsa lebih dari 24 jam
 Schedule::command('sanctum:prune-expired --hours=24')->daily();
+
+// Hapus pemberitahuan yang lebih tua dari 90 hari (Pemberitahuan::prunable)
+Schedule::command('model:prune', ['--model' => [Pemberitahuan::class]])->daily();
 
 // Foto yang diunggah sebelum ada batas ukuran. Nama file tetap, jadi data di database tidak berubah.
 Artisan::command('foto:perkecil', function () {

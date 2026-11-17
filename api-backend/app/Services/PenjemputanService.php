@@ -24,6 +24,8 @@ class PenjemputanService
     /** Permintaan yang belum dijalankan bentor (diajukan/dijadwalkan) per warga per bank sampah. */
     public const MAKS_JEMPUT_MENUNGGU = 3;
 
+    public function __construct(private PemberitahuanService $pemberitahuan) {}
+
     /**
      * Foto dibersihkan dari EXIF/GPS (GambarAman) sebelum disimpan.
      *
@@ -61,6 +63,8 @@ class PenjemputanService
                 throw $e;
             }
 
+            $this->pemberitahuan->jemputDiajukan($penjemputan);
+
             return $penjemputan->refresh();
         });
     }
@@ -86,6 +90,8 @@ class PenjemputanService
             $p->dijadwalkan_at = now();
             $p->save();
 
+            $this->pemberitahuan->jemputDijadwalkan($p, $armada);
+
             return $p;
         });
     }
@@ -97,6 +103,8 @@ class PenjemputanService
             $p->status = StatusPenjemputan::Ditolak;
             $p->alasan_tolak = $alasan;
             $p->save();
+
+            $this->pemberitahuan->jemputDitolak($p);
 
             return $p;
         });
@@ -130,6 +138,9 @@ class PenjemputanService
 
             if ($tujuan === StatusPenjemputan::Menuju) {
                 Armada::whereKey($p->armada_id)->update(['status' => StatusArmada::Bertugas->value]);
+                $this->pemberitahuan->bentorMenuju($p);
+            } else {
+                $this->pemberitahuan->sampahDiambil($p);
             }
 
             return $p;

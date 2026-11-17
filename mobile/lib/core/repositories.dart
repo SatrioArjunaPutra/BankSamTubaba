@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'api/api_client.dart';
 import 'models/bank_sampah.dart';
 import 'models/operasional.dart';
+import 'models/pemberitahuan.dart';
 import 'models/transaksi.dart';
 import 'models/user.dart';
 import 'providers.dart';
@@ -82,6 +83,19 @@ class UmumRepository {
 
   /// Khusus warga; ditolak bila masih ada saldo, penarikan, atau penjemputan berjalan.
   Future<void> hapusAkun(String password) => _api.delete('/me', data: {'password': password});
+
+  Future<Halaman<Pemberitahuan>> pemberitahuan({int halaman = 1}) =>
+      _api.daftar('/pemberitahuan', Pemberitahuan.dariJson, halaman: halaman);
+
+  /// Angka di ikon lonceng; dipanggil berkala selama aplikasi terbuka.
+  Future<int> jumlahBelumDibaca() async {
+    final body = await _api.get('/pemberitahuan/belum-dibaca');
+    return ((body['data'] as Map?)?['jumlah'] as num?)?.toInt() ?? 0;
+  }
+
+  Future<void> bacaPemberitahuan(int id) => _api.post('/pemberitahuan/$id/baca');
+
+  Future<void> bacaSemuaPemberitahuan() => _api.post('/pemberitahuan/baca-semua');
 }
 
 class WargaRepository {

@@ -17,6 +17,8 @@ use Illuminate\Validation\ValidationException;
  */
 class PenarikanService
 {
+    public function __construct(private PemberitahuanService $pemberitahuan) {}
+
     public function ajukan(User $warga, int $bankId, string|float $jumlah, ?string $catatan): Penarikan
     {
         $jumlahSen = Uang::keSen($jumlah);
@@ -51,6 +53,8 @@ class PenarikanService
             ]);
             $penarikan->status = StatusPenarikan::Diajukan;
             $penarikan->save();
+
+            $this->pemberitahuan->penarikanDiajukan($penarikan);
 
             return $penarikan->refresh();
         });
@@ -105,6 +109,8 @@ class PenarikanService
         $p->diproses_oleh = $operator->id;
         $p->catatan = $catatan ?? $p->catatan;
         $p->save();
+
+        $this->pemberitahuan->penarikanDiproses($p);
 
         return $p;
     }

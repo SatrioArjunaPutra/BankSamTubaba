@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\Bs;
 use App\Http\Controllers\Api\Dlh;
 use App\Http\Controllers\Api\HapusAkunController;
 use App\Http\Controllers\Api\JenisSampahController;
+use App\Http\Controllers\Api\PemberitahuanController;
 use App\Http\Controllers\Api\PerangkatController;
 use App\Http\Controllers\Api\Preloved;
 use App\Http\Controllers\Api\ProfilController;
@@ -49,6 +50,12 @@ Route::prefix('v1')->group(function () {
         Route::get('/me/perangkat', [PerangkatController::class, 'index']);
         Route::post('/me/perangkat/keluar-lainnya', [PerangkatController::class, 'keluarLainnya']);
         Route::delete('/me/perangkat/{perangkat}', [PerangkatController::class, 'hapus'])->whereNumber('perangkat');
+
+        // Pemberitahuan di dalam aplikasi (polling, bukan push)
+        Route::get('/pemberitahuan', [PemberitahuanController::class, 'index']);
+        Route::get('/pemberitahuan/belum-dibaca', [PemberitahuanController::class, 'belumDibaca']);
+        Route::post('/pemberitahuan/baca-semua', [PemberitahuanController::class, 'bacaSemua']);
+        Route::post('/pemberitahuan/{pemberitahuan}/baca', [PemberitahuanController::class, 'baca'])->whereNumber('pemberitahuan');
 
         // Umum
         Route::get('/bank-sampah', [BankSampahController::class, 'index']);
