@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:bank_sampah_tubaba/core/api/api_client.dart';
 import 'package:bank_sampah_tubaba/core/api/mock_backend.dart';
+import 'package:bank_sampah_tubaba/core/komponen_ui.dart';
 import 'package:bank_sampah_tubaba/core/providers.dart';
 import 'package:bank_sampah_tubaba/core/storage/token_storage.dart';
 import 'package:bank_sampah_tubaba/main.dart';
@@ -37,6 +38,14 @@ Future<void> _masuk(WidgetTester tester, String email, String peran) async {
     ),
   );
   await tester.pumpAndSettle();
+  if (peran != 'Warga') {
+    // Pengelola dan Bentor berada di bawah pilihan "Bank Sampah".
+    await tester.tap(find.descendant(
+      of: find.byType(SegmenReferensi<bool>),
+      matching: find.text('Bank Sampah'),
+    ));
+    await tester.pumpAndSettle();
+  }
   await tester.tap(find.text(peran));
   await tester.pumpAndSettle();
   await tester.enterText(find.widgetWithText(TextFormField, 'Email'), email);
@@ -47,6 +56,11 @@ Future<void> _masuk(WidgetTester tester, String email, String peran) async {
   await tester.pumpAndSettle();
 }
 
+/// Keterangan di bawah saldo warga: jumlah bank tempat saldo tersimpan, atau ajakan menabung.
+final _keteranganSaldo = find.byWidgetPredicate(
+  (w) => w is Text && RegExp(r'^(Di \d+ bank sampah|Ayo mulai menabung)$').hasMatch(w.data ?? ''),
+);
+
 void main() {
   setUpAll(() async {
     await initializeDateFormatting('id_ID');
@@ -56,24 +70,34 @@ void main() {
     await loader.load();
   });
 
-  testWidgets('warga melihat saldo, keterangan poin, dan navigasi berlabel', (tester) async {
+  testWidgets('warga melihat saldo, keterangan saldo, dan navigasi berlabel', (tester) async {
     _layar320(tester);
     await _masuk(tester, 'warga@demo.id', 'Warga');
 
     expect(find.text('Saldo tabungan'), findsOneWidget);
-    expect(find.text('1 poin = 1 rupiah'), findsOneWidget);
+    expect(_keteranganSaldo, findsOneWidget);
+    expect(find.text('1 poin = 1 rupiah'), findsNothing);
+    // Alur di header berlabel, bukan deret ikon tanpa arti
+    for (final langkah in ['Pilah', 'Timbang', 'Tabung']) {
+      expect(find.text(langkah), findsOneWidget);
+    }
+    // Menu tidak mengulang tujuan yang sudah ada di kotak cari atau navigasi bawah
+    for (final menu in ['Cara setor', 'Donasi', 'Status jemput', 'Harga sampah']) {
+      expect(find.text(menu), findsOneWidget);
+    }
+    expect(find.text('Setor'), findsNothing);
     expect(find.text('Tarik saldo'), findsOneWidget);
     expect(find.byTooltip('Pesan jemput sampah'), findsOneWidget);
     expect(find.text('Riwayat'), findsWidgets);
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('keterangan poin hanya untuk warga', (tester) async {
+  testWidgets('keterangan saldo hanya untuk warga', (tester) async {
     _layar320(tester);
-    await _masuk(tester, 'operator@demo.id', 'Bank sampah');
+    await _masuk(tester, 'operator@demo.id', 'Pengelola');
 
     expect(find.text('Sampah masuk hari ini'), findsOneWidget);
-    expect(find.text('1 poin = 1 rupiah'), findsNothing);
+    expect(_keteranganSaldo, findsNothing);
     expect(find.byTooltip('Catat setoran'), findsOneWidget);
     expect(find.text('Catat'), findsWidgets);
     expect(tester.takeException(), isNull);
@@ -87,5 +111,51 @@ void main() {
     expect(find.text('Kapasitas'), findsOneWidget);
     expect(find.text('Armada'), findsOneWidget);
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Cara setor membuka panduan dengan jalan pintas', (tester) async {
+    _layar320(tester);
+    await _masuk(tester, 'warga@demo.id', 'Warga');
+
+    await tester.tap(find.text('Cara setor'));
+    await tester.pumpAndSettle();
+    expect(find.text('Cara menabung sampah'), findsOneWidget);
+    for (final langkah in ['Pilah dari rumah', 'Bawa atau minta jemput', 'Ditimbang petugas', 'Tarik saldo']) {
+      expect(find.text(langkah), findsWidgets);
+    }
+    expect(find.widgetWithText(OutlinedButton, 'Cari bank sampah terdekat'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    await tester.ensureVisible(find.widgetWithText(OutlinedButton, 'Cari bank sampah terdekat'));
+    await tester.tap(find.widgetWithText(OutlinedButton, 'Cari bank sampah terdekat'));
+    await tester.pumpAndSettle();
+    expect(find.text('Cara menabung sampah'), findsNothing);
+  });
+
+  testWidgets('tiap menu beranda jadi tombol tersendiri bagi pembaca layar', (tester) async {
+    final semantik = tester.ensureSemantics();
+    _layar320(tester);
+    await _masuk(tester, 'warga@demo.id', 'Warga');
+
+    for (final menu in ['Cara setor', 'Donasi', 'Status jemput', 'Harga sampah']) {
+      expect(
+        tester.getSemantics(find.bySemanticsLabel(menu)),
+        isSemantics(label: menu, isButton: true, hasTapAction: true),
+      );
+    }
+    semantik.dispose();
+  });
+
+  testWidgets('Harga sampah menggulir ke daftar harga di beranda', (tester) async {
+    _layar320(tester);
+    await _masuk(tester, 'warga@demo.id', 'Warga');
+
+    final judul = find.text('Harga sampah hari ini');
+    final tinggiLayar = tester.view.physicalSize.height / tester.view.devicePixelRatio;
+    expect(tester.getTopLeft(judul).dy, greaterThan(tinggiLayar));
+
+    await tester.tap(find.text('Harga sampah'));
+    await tester.pumpAndSettle();
+    expect(tester.getTopLeft(judul).dy, inInclusiveRange(0, tinggiLayar / 2));
   });
 }

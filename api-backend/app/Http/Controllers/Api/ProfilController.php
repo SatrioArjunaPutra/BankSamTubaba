@@ -28,6 +28,7 @@ class ProfilController extends Controller
     {
         $user = $request->user();
         $user->update(['password' => $request->validated('password')]);
+        $user->forceFill(['harus_ganti_password' => false])->save();
         $user->tokens()->whereKeyNot($user->currentAccessToken()->getKey())->delete();
 
         return $this->sukses('Password berhasil diubah. Perangkat lain telah dikeluarkan.');

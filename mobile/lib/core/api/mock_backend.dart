@@ -16,6 +16,7 @@ class MockBackend implements HttpClientAdapter {
   final _users = <int, Map<String, dynamic>>{};
   final _password = <int, String>{};
   final _token = <String, int>{};
+  final _sesi = <String, Map<String, dynamic>>{};
   final _bank = <int, Map<String, dynamic>>{};
   final _jenis = <int, Map<String, dynamic>>{};
   final _harga = <String, double>{}; // "bankId:jenisId"
@@ -196,6 +197,7 @@ class MockBackend implements HttpClientAdapter {
       'lat': lat,
       'lng': lng,
       'is_aktif': true,
+      'harus_ganti_password': false,
     };
     _password[id] = 'password';
   }
@@ -436,13 +438,16 @@ class MockBackend implements HttpClientAdapter {
         return _gagal(403, switch (u['role']) {
           'dlh' => 'Akun DLH hanya bisa masuk lewat web dashboard.',
           'bank_sampah' =>
-            "Akun ini terdaftar sebagai Bank sampah. Pilih 'Bank sampah' lalu coba lagi.",
+            "Akun ini terdaftar sebagai pengelola bank sampah. Pilih Bank Sampah, lalu Pengelola.",
           'bentor' =>
-            "Akun ini terdaftar sebagai Bentor. Pilih 'Bentor' lalu coba lagi.",
-          _ => "Akun ini terdaftar sebagai Warga. Pilih 'Warga' lalu coba lagi.",
+            "Akun ini terdaftar sebagai bentor. Pilih Bank Sampah, lalu Bentor.",
+          _ => "Akun ini terdaftar sebagai warga. Pilih Warga, lalu coba lagi.",
         });
       }
-      return _sukses('Login berhasil.', _login(u['id'] as int));
+      return _sukses(
+        'Login berhasil.',
+        _login(u['id'] as int, perangkat: '${d['device_name'] ?? 'android'}'),
+      );
     }
     if (m == 'GET' && p == '/statistik-publik') {
       final perKecamatan = <String, int>{};
@@ -494,7 +499,86 @@ class MockBackend implements HttpClientAdapter {
     final user = _users[saya]!;
     final bankSaya = user['bank_sampah_id'] as int?;
 
+    // Password sementara dari petugas: hanya profil, ganti password, dan keluar
+    final bolehSaatWajibGanti =
+        (m == 'GET' && p == '/me') ||
+        (m == 'PUT' && p == '/me/password') ||
+        (m == 'POST' && p == '/auth/logout');
+    if (user['harus_ganti_password'] == true && !bolehSaatWajibGanti) {
+      return (
+        403,
+        {
+          'status': 'gagal',
+          'pesan': 'Ganti password sementara Anda terlebih dahulu.',
+          'kode': 'wajib_ganti_password',
+        },
+      );
+    }
+
     // --- akun ---
+    if (m == 'GET' && p == '/me/perangkat') {
+      final milik = _token.entries.where((e) => e.value == saya).map(
+        (e) => {
+          ..._sesi[e.key] ?? {'id': 0, 'nama': 'android'},
+          'terakhir_dipakai_at': DateTime.now().toIso8601String(),
+          'kedaluwarsa_at': null,
+          'saat_ini': e.key == token,
+        },
+      );
+      return _sukses('Daftar perangkat berhasil dimuat.', milik.toList());
+    }
+    final hapusSesi = RegExp(r'^/me/perangkat/(\d+)$').firstMatch(p);
+    if (m == 'DELETE' && hapusSesi != null) {
+      final id = int.parse(hapusSesi.group(1)!);
+      final milik = _token.keys
+          .where((t) => _token[t] == saya && _sesi[t]?['id'] == id)
+          .firstOrNull;
+      if (milik == null) return _gagal(404, 'Data tidak ditemukan.');
+      _token.remove(milik);
+      return _sukses('Perangkat berhasil dikeluarkan.');
+    }
+    if (m == 'POST' && p == '/me/perangkat/keluar-lainnya') {
+      final lain = _token.keys
+          .where((t) => _token[t] == saya && t != token)
+          .toList();
+      lain.forEach(_token.remove);
+      return _sukses('Perangkat lain berhasil dikeluarkan.', {
+        'jumlah': lain.length,
+      });
+    }
+    if (m == 'DELETE' && p == '/me') {
+      if (user['role'] != 'warga') {
+        return _gagal(
+          403,
+          'Akun petugas hanya bisa dihapus oleh pengelola bank sampah atau DLH.',
+        );
+      }
+      if (d['password'] != _password[saya]) {
+        return _gagal(422, 'Data yang dikirim tidak valid.', {
+          'password': ['Password salah.'],
+        });
+      }
+      final sisa = _saldo.entries
+          .where((e) => e.key.startsWith('$saya:'))
+          .fold<num>(0, (a, e) => a + e.value);
+      if (sisa > 0) {
+        return _gagal(422, 'Data yang dikirim tidak valid.', {
+          'akun': [
+            'Saldo Anda masih Rp ${sisa.round()}. Tarik saldo terlebih dahulu sebelum menghapus akun.',
+          ],
+        });
+      }
+      user
+        ..['name'] = 'Warga terhapus'
+        ..['email'] = 'terhapus-$saya@akun-terhapus.invalid'
+        ..['phone'] = null
+        ..['alamat'] = null
+        ..['lat'] = null
+        ..['lng'] = null
+        ..['is_aktif'] = false;
+      _token.removeWhere((_, id) => id == saya);
+      return _sukses('Akun Anda sudah dihapus.');
+    }
     if (m == 'POST' && p == '/auth/logout') {
       _token.remove(token);
       return _sukses('Logout berhasil.');
@@ -515,6 +599,8 @@ class MockBackend implements HttpClientAdapter {
         });
       }
       _password[saya] = '${d['password']}';
+      user['harus_ganti_password'] = false;
+      _token.removeWhere((t, id) => id == saya && t != token);
       return _sukses(
         'Password berhasil diubah. Perangkat lain telah dikeluarkan.',
       );
@@ -990,9 +1076,14 @@ class MockBackend implements HttpClientAdapter {
     return _gagal(404, 'Data tidak ditemukan.');
   }
 
-  Map<String, dynamic> _login(int id) {
+  Map<String, dynamic> _login(int id, {String perangkat = 'android'}) {
     final token = 'mock-$_idBaru';
     _token[token] = id;
+    _sesi[token] = {
+      'id': _idBaru,
+      'nama': perangkat,
+      'dibuat_at': DateTime.now().toIso8601String(),
+    };
     return {
       'user': _userJson(id),
       'token': token,
@@ -1112,6 +1203,11 @@ class MockBackend implements HttpClientAdapter {
       );
     }
     if (m == 'POST' && p == '/warga/penarikan') {
+      if (d['password'] != _password[saya]) {
+        return _gagal(422, 'Data yang dikirim tidak valid.', {
+          'password': ['Password salah.'],
+        });
+      }
       final bankId = int.parse('${d['bank_sampah_id']}');
       final jumlah = double.tryParse('${d['jumlah']}') ?? 0;
       final saldo = _saldo['$saya:$bankId'] ?? 0;
@@ -1497,6 +1593,35 @@ class MockBackend implements HttpClientAdapter {
         'bentor': _userJson(id),
         'armada': armada == null ? null : _armadaJson(armada),
       }, 201);
+    }
+    final reset = RegExp(
+      r'^/bs/(nasabah|bentor)/(\d+)/reset-password$',
+    ).firstMatch(p);
+    if (m == 'POST' && reset != null) {
+      final id = int.parse(reset.group(2)!);
+      final target = _users[id];
+      if (reset.group(1) == 'nasabah') {
+        if (target == null ||
+            target['role'] != 'warga' ||
+            !_saldo.containsKey('$id:$bank')) {
+          return _gagal(404, 'Data tidak ditemukan.');
+        }
+      } else if (target == null ||
+          target['role'] != 'bentor' ||
+          target['bank_sampah_id'] != bank) {
+        return _gagal(403, 'Anda tidak memiliki akses ke fitur ini.');
+      }
+      const sandi = 'sementara8';
+      _password[id] = sandi;
+      target['harus_ganti_password'] = true;
+      _token.removeWhere((_, pemilik) => pemilik == id);
+      return _sukses(
+        'Password sementara dibuat. Berikan langsung kepada pemilik akun.',
+        {
+          'user': {'id': id, 'name': target['name']},
+          'password_sementara': sandi,
+        },
+      );
     }
     final statusBentor = RegExp(r'^/bs/bentor/(\d+)/status$').firstMatch(p);
     if (m == 'PATCH' && statusBentor != null) {

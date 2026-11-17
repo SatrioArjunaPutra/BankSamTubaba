@@ -14,6 +14,7 @@ import '../auth/auth_controller.dart';
 import '../warga/warga_shell.dart' show KartuSetoran;
 import 'bs_providers.dart';
 import 'nasabah_tab.dart';
+import 'reset_password.dart';
 
 /// Kerangka operator bank sampah: Beranda, Setoran, Jemput, Bentor, Lainnya.
 class BsShell extends ConsumerStatefulWidget {
@@ -914,6 +915,14 @@ class _KartuArmada extends ConsumerWidget {
           tooltip: 'Ubah status',
           onSelected: (pilihan) async {
             final repo = ref.read(bankSampahRepositoryProvider);
+            if (pilihan == 'reset-password') {
+              await resetPasswordAkun(
+                context,
+                nama: a.driver?.name ?? 'driver',
+                reset: () => repo.resetPasswordBentor(a.driver!.id),
+              );
+              return;
+            }
             final bool ok;
             if (pilihan.startsWith('akun-')) {
               final aktif = pilihan == 'akun-aktif';
@@ -951,6 +960,11 @@ class _KartuArmada extends ConsumerWidget {
               child: Text('Armada: Nonaktif'),
             ),
             const PopupMenuDivider(),
+            if (a.driverAktif && a.driver != null)
+              const PopupMenuItem(
+                value: 'reset-password',
+                child: Text('Reset password driver'),
+              ),
             if (a.driverAktif)
               const PopupMenuItem(
                 value: 'akun-nonaktif',

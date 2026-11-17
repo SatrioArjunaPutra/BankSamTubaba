@@ -69,7 +69,7 @@ class ApiClient {
 
   Future<Map<String, dynamic>> patch(String path, {Object? data}) => _kirim(() => dio.patch(path, data: data));
 
-  Future<Map<String, dynamic>> delete(String path) => _kirim(() => dio.delete(path));
+  Future<Map<String, dynamic>> delete(String path, {Object? data}) => _kirim(() => dio.delete(path, data: data));
 
   /// GET daftar berhalaman (20/halaman) dan ubah tiap item dengan [dari].
   Future<Halaman<T>> daftar<T>(

@@ -179,6 +179,36 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   String _peran = 'warga';
   String? _galat;
 
+  /// Pengelola dan bentor sama-sama masuk lewat pilihan "Bank Sampah".
+  bool get _petugas => _peran != 'warga';
+
+  void _pilihPeran(String peran) => setState(() {
+    _peran = peran;
+    _galat = null;
+  });
+
+  /// Belum ada reset lewat email; password direset petugas setelah bertemu langsung.
+  void _lupaPassword() => showDialog<void>(
+    context: context,
+    builder: (c) => DialogAplikasi(
+      judul: 'Lupa password?',
+      isi: Text(switch (_peran) {
+        'bentor' =>
+          'Minta pengelola bank sampahmu mereset password. Kamu akan mendapat password sementara yang wajib diganti setelah masuk.',
+        'bank_sampah' =>
+          'Hubungi DLH Kabupaten Tulang Bawang Barat untuk memulihkan akun pengelola.',
+        _ =>
+          'Datangi bank sampah tempat kamu menabung. Pengelola akan memberi password sementara yang wajib kamu ganti setelah masuk.',
+      }, style: const TextStyle(height: 1.45)),
+      aksi: [
+        FilledButton(
+          onPressed: () => Navigator.pop(c),
+          child: const Text('Mengerti'),
+        ),
+      ],
+    ),
+  );
+
   @override
   void dispose() {
     _email.dispose();
@@ -214,18 +244,39 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 10),
-        SegmenReferensi<String>(
-          nilai: _peran,
-          pilihan: const [
-            ('warga', 'Warga'),
-            ('bank_sampah', 'Bank sampah'),
-            ('bentor', 'Bentor'),
-          ],
-          onUbah: (v) => setState(() {
-            _peran = v;
-            _galat = null;
-          }),
+        SegmenReferensi<bool>(
+          nilai: _petugas,
+          pilihan: const [(false, 'Warga'), (true, 'Bank Sampah')],
+          onUbah: (petugas) => _pilihPeran(petugas ? 'bank_sampah' : 'warga'),
         ),
+        // Tanpa AnimatedSize: kerangka memakai IntrinsicHeight yang salah menghitung tinggi saat animasi.
+        if (_petugas)
+          Padding(
+            padding: const EdgeInsets.only(top: 12),
+            child: Row(
+              children: [
+                Expanded(
+                  child: _KartuPeran(
+                    gambar: 'setor',
+                    judul: 'Pengelola',
+                    keterangan: 'Timbang, harga, dan penarikan',
+                    dipilih: _peran == 'bank_sampah',
+                    onTap: () => _pilihPeran('bank_sampah'),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _KartuPeran(
+                    gambar: 'jemput',
+                    judul: 'Bentor',
+                    keterangan: 'Tugas jemput sampah',
+                    dipilih: _peran == 'bentor',
+                    onTap: () => _pilihPeran('bentor'),
+                  ),
+                ),
+              ],
+            ),
+          ),
         const SizedBox(height: 20),
         Form(
           key: _form,
@@ -272,7 +323,14 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     (v == null || v.isEmpty) ? 'Password wajib diisi.' : null,
                 onFieldSubmitted: (_) => _masuk(),
               ),
-              const SizedBox(height: 20),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: _lupaPassword,
+                  child: const Text('Lupa password?'),
+                ),
+              ),
+              const SizedBox(height: 8),
               FilledButton(
                 onPressed: _loading ? null : _masuk,
                 style: FilledButton.styleFrom(
@@ -290,16 +348,104 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     : const Text('Masuk'),
               ),
               const SizedBox(height: 12),
-              TextButton(
-                onPressed: () => context.go('/register'),
-                child: const Text('Warga baru? Daftar di sini'),
-              ),
+              if (_petugas)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 12),
+                  child: Text(
+                    'Akun petugas dibuat oleh DLH atau pengelola bank sampah.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 12.5, color: TemaAplikasi.redup),
+                  ),
+                )
+              else
+                TextButton(
+                  onPressed: () => context.go('/register'),
+                  child: const Text('Warga baru? Daftar di sini'),
+                ),
             ],
           ),
         ),
       ],
     );
   }
+}
+
+/// Pilihan peran petugas bank sampah (pengelola atau bentor) dengan ilustrasi 3D.
+class _KartuPeran extends StatelessWidget {
+  const _KartuPeran({
+    required this.gambar,
+    required this.judul,
+    required this.keterangan,
+    required this.dipilih,
+    required this.onTap,
+  });
+
+  final String gambar;
+  final String judul;
+  final String keterangan;
+  final bool dipilih;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    button: true,
+    selected: dipilih,
+    container: true,
+    child: Material(
+      color: dipilih ? TemaAplikasi.hijauLembut : Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(
+          color: dipilih ? TemaAplikasi.hijau : TemaAplikasi.garis,
+          width: dipilih ? 1.6 : 1,
+        ),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(10, 10, 10, 12),
+          child: Row(
+            children: [
+              Image.asset(
+                'assets/illustrations/ikon/$gambar.png',
+                width: 40,
+                height: 40,
+                excludeFromSemantics: true,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      judul,
+                      style: TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w800,
+                        color: dipilih
+                            ? TemaAplikasi.hijauPekat
+                            : TemaAplikasi.teks,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      keterangan,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        height: 1.25,
+                        color: TemaAplikasi.redup,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
 }
 
 class RegisterPage extends ConsumerStatefulWidget {
@@ -348,7 +494,9 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
       _terdekat = null;
     });
     try {
-      final hasil = await ref.read(umumRepositoryProvider).bankTerdekatPublik(titik.latitude, titik.longitude);
+      final hasil = await ref
+          .read(umumRepositoryProvider)
+          .bankTerdekatPublik(titik.latitude, titik.longitude);
       // Abaikan jawaban lama bila titiknya sudah dipindah lagi
       if (!mounted || titik != _titik) return;
       setState(() {
@@ -368,7 +516,9 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
     final formOk = _form.currentState!.validate();
     final titik = _titik;
     if (titik == null) {
-      setState(() => _galat = {..._galat, 'lat': 'Tandai titik rumah Anda di peta.'});
+      setState(
+        () => _galat = {..._galat, 'lat': 'Tandai titik rumah Anda di peta.'},
+      );
     }
     if (!formOk || titik == null) return;
     setState(() {
@@ -479,8 +629,13 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                 galat: _galat['lat'] ?? _galat['lng'],
                 onBerubah: _gantiTitik,
                 penandaLain: [
-                  if (_terdekat?.firstOrNull case final b? when b.lat != null && b.lng != null)
-                    penandaPin(LatLng(b.lat!, b.lng!), warna: TemaAplikasi.hijau, ikon: Icons.recycling),
+                  if (_terdekat?.firstOrNull case final b?
+                      when b.lat != null && b.lng != null)
+                    penandaPin(
+                      LatLng(b.lat!, b.lng!),
+                      warna: TemaAplikasi.hijau,
+                      ikon: Icons.recycling,
+                    ),
                 ],
               ),
               if (_titik != null) ...[
@@ -537,7 +692,11 @@ class _BankTerdekatDaftar extends StatelessWidget {
     if (memuat) {
       isi = const Row(
         children: [
-          SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
+          SizedBox(
+            width: 16,
+            height: 16,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
           SizedBox(width: 10),
           Text('Menghitung jarak…', style: redup),
         ],
@@ -545,19 +704,31 @@ class _BankTerdekatDaftar extends StatelessWidget {
     } else if (gagal) {
       isi = Row(
         children: [
-          const Expanded(child: Text('Jarak belum bisa dihitung. Anda tetap bisa mendaftar.', style: redup)),
+          const Expanded(
+            child: Text(
+              'Jarak belum bisa dihitung. Anda tetap bisa mendaftar.',
+              style: redup,
+            ),
+          ),
           TextButton(onPressed: onUlang, child: const Text('Coba lagi')),
         ],
       );
     } else if (hasil == null || hasil.isEmpty) {
-      isi = const Text('Belum ada bank sampah dalam radius 50 km dari titik ini.', style: redup);
+      isi = const Text(
+        'Belum ada bank sampah dalam radius 50 km dari titik ini.',
+        style: redup,
+      );
     } else {
       isi = Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const Text(
             'Bank sampah terdekat',
-            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: TemaAplikasi.hijauPekat),
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: TemaAplikasi.hijauPekat,
+            ),
           ),
           const SizedBox(height: 6),
           for (final b in hasil)
@@ -576,7 +747,11 @@ class _BankTerdekatDaftar extends StatelessWidget {
                   const SizedBox(width: 8),
                   Text(
                     jarakKm(b.jarakKm ?? 0),
-                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: TemaAplikasi.hijau),
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                      color: TemaAplikasi.hijau,
+                    ),
                   ),
                 ],
               ),

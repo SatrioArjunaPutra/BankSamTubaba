@@ -164,7 +164,7 @@ class PantauanDlhTest extends TestCase
         $warga = $this->warga();
         app(SetoranService::class)->catat($this->operator($bank), ['warga_id' => $warga->id, 'tipe' => 'jual', 'items' => [['jenis_sampah_id' => $this->jenis('Plastik')->id, 'berat_kg' => 20]]]);
         Sanctum::actingAs($warga);
-        $this->postJson('/api/v1/warga/penarikan', ['bank_sampah_id' => $bank->id, 'jumlah' => 1000])->assertCreated();
+        $this->postJson('/api/v1/warga/penarikan', ['password' => 'password', 'bank_sampah_id' => $bank->id, 'jumlah' => 1000])->assertCreated();
         Sanctum::actingAs(User::factory()->dlh()->create());
         $this->getJson('/api/v1/dlh/transaksi')->assertOk()->assertJsonPath('meta.total', 2);
         $this->getJson('/api/v1/dlh/transaksi?tipe=penarikan')->assertOk()->assertJsonPath('meta.total', 1)

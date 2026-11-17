@@ -9,3 +9,6 @@ class Config {
   /// true → semua request dijawab backend palsu di memori (lib/core/api/mock_backend.dart).
   static const useMock = bool.fromEnvironment('USE_MOCK');
 }
+
+/// Versi yang tampil di menu Tentang; samakan dengan "version" di pubspec.yaml.
+const versiAplikasi = '1.0.0';

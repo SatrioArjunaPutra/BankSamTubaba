@@ -127,7 +127,7 @@ void main() {
       expect((await bentor.armada()).status, 'siaga');
 
       // Warga ajukan penarikan, operator setujui
-      final tarik = await wargaRepo.ajukanPenarikan(bank.id, 1000, null);
+      final tarik = await wargaRepo.ajukanPenarikan(bank.id, 1000, null, password: _password);
       expect(tarik.status, 'diajukan');
       final menunggu = await bs.penarikan('diajukan');
       expect(menunggu.items.map((p) => p.id), contains(tarik.id));

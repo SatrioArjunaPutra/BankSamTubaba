@@ -1,5 +1,6 @@
 import 'package:bank_sampah_tubaba/core/api/api_client.dart';
 import 'package:bank_sampah_tubaba/core/api/mock_backend.dart';
+import 'package:bank_sampah_tubaba/core/komponen_ui.dart';
 import 'package:bank_sampah_tubaba/core/models/user.dart';
 import 'package:bank_sampah_tubaba/core/providers.dart';
 import 'package:bank_sampah_tubaba/core/router.dart';
@@ -65,6 +66,9 @@ void main() {
       String email, {
       String peran = 'Warga',
     }) async {
+      tester.view.physicalSize = const Size(1170, 2532);
+      tester.view.devicePixelRatio = 3;
+      addTearDown(tester.view.reset);
       final storage = MemoryTokenStorage();
       await tester.pumpWidget(
         ProviderScope(
@@ -85,6 +89,16 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Masuk'), findsWidgets);
+      if (peran != 'Warga') {
+        // Pengelola dan Bentor berada di bawah pilihan "Bank Sampah".
+        await tester.tap(
+          find.descendant(
+            of: find.byType(SegmenReferensi<bool>),
+            matching: find.text('Bank Sampah'),
+          ),
+        );
+        await tester.pumpAndSettle();
+      }
       await tester.tap(find.text(peran));
       await tester.pumpAndSettle();
       await tester.enterText(
@@ -106,7 +120,7 @@ void main() {
     });
 
     testWidgets('operator masuk ke beranda bank sampah', (tester) async {
-      await masuk(tester, 'operator@demo.id', peran: 'Bank sampah');
+      await masuk(tester, 'operator@demo.id', peran: 'Pengelola');
       expect(find.text('Bank Sampah Demo Panaragan'), findsOneWidget);
       expect(find.byTooltip('Catat setoran'), findsOneWidget);
     });

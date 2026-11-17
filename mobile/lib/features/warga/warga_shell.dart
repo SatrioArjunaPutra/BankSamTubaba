@@ -4,6 +4,7 @@ import 'package:flutter/services.dart' show SystemUiOverlayStyle;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/config.dart';
 import '../../core/daftar_berhalaman.dart';
 import '../../core/format.dart';
 import '../../core/komponen_ui.dart';
@@ -137,7 +138,7 @@ class _WargaShellState extends ConsumerState<WargaShell> {
   }
 }
 
-class BerandaWarga extends ConsumerWidget {
+class BerandaWarga extends ConsumerStatefulWidget {
   const BerandaWarga({
     super.key,
     required this.bukaPenjemputan,
@@ -149,7 +150,30 @@ class BerandaWarga extends ConsumerWidget {
   final VoidCallback mintaJemput;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<BerandaWarga> createState() => _BerandaWargaState();
+}
+
+class _BerandaWargaState extends ConsumerState<BerandaWarga> {
+  final _kunciHarga = GlobalKey();
+
+  /// Menggulir ke bagian harga di beranda; bila belum terpasang, buka daftar bank sampah.
+  void _lihatHarga() {
+    final tujuan = _kunciHarga.currentContext;
+    if (tujuan == null) {
+      context.push('/warga/cari');
+      return;
+    }
+    Scrollable.ensureVisible(
+      tujuan,
+      duration: const Duration(milliseconds: 450),
+      curve: Curves.easeOutCubic,
+      alignment: .05,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final mintaJemput = widget.mintaJemput;
     return RefreshIndicator(
       onRefresh: () async {
         ref.invalidate(saldoProvider);
@@ -175,24 +199,25 @@ class BerandaWarga extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _MenuKotak(
-                        label: 'Setor',
+                        label: 'Cara setor',
                         gambar: 'setor',
-                        onTap: () => context.push('/warga/cari'),
+                        onTap: () => _bukaCaraSetor(context, mintaJemput: mintaJemput),
                       ),
                       _MenuKotak(
                         label: 'Donasi',
                         gambar: 'donasi',
                         onTap: () => context.push('/warga/donasi'),
                       ),
+                      // Satu-satunya jalan ke daftar status jemput; tombol Jemput di navigasi membuat permintaan baru
                       _MenuKotak(
                         label: 'Status jemput',
                         gambar: 'jemput',
-                        onTap: bukaPenjemputan,
+                        onTap: widget.bukaPenjemputan,
                       ),
                       _MenuKotak(
-                        label: 'Preloved',
-                        gambar: 'preloved',
-                        onTap: bukaPreloved,
+                        label: 'Harga sampah',
+                        gambar: 'dompet',
+                        onTap: _lihatHarga,
                       ),
                     ],
                   ),
@@ -227,7 +252,7 @@ class BerandaWarga extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(height: 20),
-                const MunculBertahap(urutan: 4, child: _HargaHariIni()),
+                MunculBertahap(urutan: 4, child: KeyedSubtree(key: _kunciHarga, child: const _HargaHariIni())),
                 const BeritaBeranda(),
               ],
             ),
@@ -380,19 +405,17 @@ class _HeaderBeranda extends ConsumerWidget {
                             style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
                           ),
                           const SizedBox(height: 10),
-                          // Mengecil di layar sempit agar tidak meluap
+                          // Alur singkat menabung sampah; mengecil di layar sempit agar tidak meluap
                           const FittedBox(
                             fit: BoxFit.scaleDown,
                             alignment: Alignment.centerLeft,
                             child: Row(
                               children: [
-                                _BulatKecil(teks: 'Rp'),
-                                _Titik(),
-                                _BulatKecil(ikon: Icons.recycling),
-                                _Titik(),
-                                _BulatKecil(ikon: Icons.local_shipping_outlined),
-                                SizedBox(width: 6),
-                                _BulatKecil(ikon: Icons.storefront_outlined),
+                                _Langkah(ikon: Icons.recycling, teks: 'Pilah'),
+                                _Panah(),
+                                _Langkah(ikon: Icons.scale_outlined, teks: 'Timbang'),
+                                _Panah(),
+                                _Langkah(ikon: Icons.savings_outlined, teks: 'Tabung'),
                               ],
                             ),
                           ),
@@ -436,45 +459,44 @@ class _Lingkaran extends StatelessWidget {
       );
 }
 
-/// Lingkaran kecil berisi teks "Rp" atau ikon di deret bawah merek.
-class _BulatKecil extends StatelessWidget {
-  const _BulatKecil({this.teks, this.ikon});
+/// Satu langkah menabung sampah di header: ikon dan label dalam pil gelap tipis.
+class _Langkah extends StatelessWidget {
+  const _Langkah({required this.ikon, required this.teks});
 
-  final String? teks;
-  final IconData? ikon;
+  final IconData ikon;
+  final String teks;
 
   @override
   Widget build(BuildContext context) => Container(
-        width: 32,
-        height: 32,
-        alignment: Alignment.center,
+        padding: const EdgeInsets.fromLTRB(5, 5, 11, 5),
         decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: teks != null ? TemaAplikasi.limau : TemaAplikasi.hijauPekat.withValues(alpha: .45),
+          color: TemaAplikasi.hijauPekat.withValues(alpha: .35),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.white.withValues(alpha: .18)),
         ),
-        child: teks != null
-            ? Text(teks!, style: const TextStyle(color: TemaAplikasi.hijauPekat, fontSize: 11.5, fontWeight: FontWeight.w800))
-            : Icon(ikon, size: 17, color: TemaAplikasi.limau),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 22,
+              height: 22,
+              decoration: const BoxDecoration(color: TemaAplikasi.limau, shape: BoxShape.circle),
+              child: Icon(ikon, size: 14, color: TemaAplikasi.hijauPekat),
+            ),
+            const SizedBox(width: 6),
+            Text(teks, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700)),
+          ],
+        ),
       );
 }
 
-class _Titik extends StatelessWidget {
-  const _Titik();
+class _Panah extends StatelessWidget {
+  const _Panah();
 
   @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 5),
-        child: Row(
-          children: [
-            for (var i = 0; i < 3; i++)
-              Container(
-                width: 5,
-                height: 5,
-                margin: const EdgeInsets.symmetric(horizontal: 1.5),
-                decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0xB3FFFFFF)),
-              ),
-          ],
-        ),
+  Widget build(BuildContext context) => const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 3),
+        child: Icon(Icons.chevron_right, size: 18, color: Color(0xB3FFFFFF)),
       );
 }
 
@@ -568,7 +590,12 @@ class _KartuSapaan extends ConsumerWidget {
                             ),
                           ),
                         ),
-                        const Text('1 poin = 1 rupiah', style: TextStyle(fontSize: 11, color: TemaAplikasi.redup)),
+                        Text(
+                          _keteranganSaldo(s.daftar.where((b) => b.saldo > 0).length),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 11, color: TemaAplikasi.redup),
+                        ),
                       ],
                     ),
                   ),
@@ -606,23 +633,31 @@ class _MenuKotak extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Expanded(
-        child: TekanSkala(
-          child: InkWell(
-            borderRadius: BorderRadius.circular(18),
-            onTap: onTap,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 5),
-              child: Column(
-                children: [
-                  KotakIkon(gambar: gambar),
-                  const SizedBox(height: 8),
-                  Text(
-                    label,
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
-                    style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, height: 1.2),
-                  ),
-                ],
+        // container: tiap menu jadi tombol tersendiri bagi pembaca layar, tidak tergabung satu baris
+        child: Semantics(
+          container: true,
+          button: true,
+          label: label,
+          excludeSemantics: true,
+          onTap: onTap,
+          child: TekanSkala(
+            child: InkWell(
+              borderRadius: BorderRadius.circular(18),
+              onTap: onTap,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 5),
+                child: Column(
+                  children: [
+                    KotakIkon(gambar: gambar),
+                    const SizedBox(height: 8),
+                    Text(
+                      label,
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, height: 1.2),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -987,35 +1022,49 @@ class ProfilWarga extends ConsumerWidget {
             ),
           ),
         ),
-        const SizedBox(height: 24),
-        const JudulBagian('Akun'),
-        const SizedBox(height: 10),
-        Card(
-          child: Column(
-            children: [
-              ListTile(
-                leading: const Icon(Icons.location_on_outlined),
-                title: const Text('Alamat penjemputan'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => context.push('/akun'),
-              ),
-              const Divider(height: 1),
-              ListTile(
-                leading: const Icon(Icons.shopping_bag_outlined),
-                title: const Text('Barang preloved saya'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => context.push('/warga/preloved/saya'),
-              ),
-              const Divider(height: 1),
-              ListTile(
-                leading: const Icon(Icons.lock_outline),
-                title: const Text('Keamanan akun'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => context.push('/akun/password'),
-              ),
-            ],
+        _GrupPengaturan('Akun', [
+          _ButirPengaturan(Icons.person_outline, 'Ubah profil', onTap: () => context.push('/akun')),
+          _ButirPengaturan(
+            Icons.location_on_outlined,
+            'Alamat dan titik jemput',
+            keterangan: user?.lat == null ? 'Titik rumah belum ditandai' : null,
+            onTap: () => context.push('/akun'),
           ),
-        ),
+        ]),
+        _GrupPengaturan('Keamanan', [
+          _ButirPengaturan(Icons.lock_outline, 'Ganti password', onTap: () => context.push('/akun/password')),
+          _ButirPengaturan(
+            Icons.devices_outlined,
+            'Perangkat aktif',
+            keterangan: 'Lihat dan keluarkan perangkat lain',
+            onTap: () => context.push('/akun/perangkat'),
+          ),
+        ]),
+        _GrupPengaturan('Bantuan', [
+          _ButirPengaturan(
+            Icons.help_outline,
+            'Cara menabung sampah',
+            onTap: () => _bukaCaraSetor(context, mintaJemput: () => context.push('/warga/jemput/baru')),
+          ),
+          _ButirPengaturan(
+            Icons.support_agent_outlined,
+            'Hubungi bank sampah',
+            keterangan: 'Termasuk untuk reset password',
+            onTap: () => _pilihBankDihubungi(context, saldo.value?.daftar ?? const []),
+          ),
+        ]),
+        _GrupPengaturan('Privasi dan data', [
+          _ButirPengaturan(Icons.privacy_tip_outlined, 'Kebijakan privasi', onTap: () => context.push('/akun/privasi')),
+          _ButirPengaturan(
+            Icons.delete_outline,
+            'Hapus akun',
+            bahaya: true,
+            onTap: () => context.push('/akun/hapus'),
+          ),
+        ]),
+        const _GrupPengaturan('Tentang', [
+          _ButirPengaturan(Icons.info_outline, 'Bank Sampah Tubaba', keterangan: 'Versi $versiAplikasi'),
+        ]),
         const SizedBox(height: 18),
         OutlinedButton.icon(
           onPressed: () async {
@@ -1257,4 +1306,208 @@ class DaftarJemputWarga extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// Keterangan di bawah saldo: di berapa bank sampah saldo tersimpan.
+String _keteranganSaldo(int jumlahBank) =>
+    jumlahBank == 0 ? 'Ayo mulai menabung' : 'Di $jumlahBank bank sampah';
+
+/// Panduan singkat menabung sampah, dengan jalan pintas ke minta jemput dan cari bank.
+Future<void> _bukaCaraSetor(BuildContext context, {required VoidCallback mintaJemput}) =>
+    tampilkanSheet<void>(
+      context,
+      (lembar) => Padding(
+          padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Text('Cara menabung sampah', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800)),
+              const SizedBox(height: 4),
+              const Text(
+                'Sampahmu ditimbang petugas, lalu nilainya masuk ke saldo.',
+                style: TextStyle(fontSize: 13, color: TemaAplikasi.redup),
+              ),
+              const SizedBox(height: 18),
+              for (final (i, (judul, isi)) in _langkahSetor.indexed)
+                _ButirLangkah(nomor: i + 1, judul: judul, isi: isi, terakhir: i == _langkahSetor.length - 1),
+              const SizedBox(height: 8),
+              FilledButton.icon(
+                onPressed: () {
+                  Navigator.pop(lembar);
+                  mintaJemput();
+                },
+                icon: const Icon(Icons.local_shipping_outlined),
+                label: const Text('Minta jemput'),
+              ),
+              const SizedBox(height: 10),
+              OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.pop(lembar);
+                  context.push('/warga/cari');
+                },
+                icon: const Icon(Icons.search),
+                label: const Text('Cari bank sampah terdekat'),
+              ),
+            ],
+          ),
+        ),
+    );
+
+const _langkahSetor = [
+  ('Pilah dari rumah', 'Pisahkan plastik, kardus, kertas, logam, kaca, dan minyak jelantah. Usahakan bersih dan kering.'),
+  ('Bawa atau minta jemput', 'Antar ke bank sampah terdekat, atau minta bentor menjemput dari rumahmu.'),
+  ('Ditimbang petugas', 'Nilai sampah sesuai harga di bank sampah itu langsung masuk ke saldomu.'),
+  ('Tarik saldo', 'Ajukan penarikan di aplikasi, lalu pengelola bank sampah memprosesnya.'),
+];
+
+class _ButirLangkah extends StatelessWidget {
+  const _ButirLangkah({required this.nomor, required this.judul, required this.isi, required this.terakhir});
+
+  final int nomor;
+  final String judul;
+  final String isi;
+  final bool terakhir;
+
+  @override
+  Widget build(BuildContext context) => IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Column(
+              children: [
+                Container(
+                  width: 30,
+                  height: 30,
+                  alignment: Alignment.center,
+                  decoration: const BoxDecoration(color: TemaAplikasi.hijauLembut, shape: BoxShape.circle),
+                  child: Text('$nomor', style: const TextStyle(color: TemaAplikasi.hijau, fontWeight: FontWeight.w800)),
+                ),
+                if (!terakhir) Expanded(child: Container(width: 2, color: TemaAplikasi.garisHijau)),
+              ],
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.only(top: 4, bottom: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(judul, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800)),
+                    const SizedBox(height: 3),
+                    Text(isi, style: const TextStyle(fontSize: 12.5, height: 1.4, color: TemaAplikasi.redup)),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+}
+
+/// Kelompok menu pengaturan dengan judul kecil di atas kartu.
+class _GrupPengaturan extends StatelessWidget {
+  const _GrupPengaturan(this.judul, this.butir);
+
+  final String judul;
+  final List<_ButirPengaturan> butir;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(top: 22),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 8),
+          child: Text(
+            judul.toUpperCase(),
+            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: .6, color: TemaAplikasi.redup),
+          ),
+        ),
+        Card(
+          margin: EdgeInsets.zero,
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            children: [
+              for (final (i, b) in butir.indexed) ...[
+                if (i > 0) const Divider(height: 1, indent: 56),
+                b,
+              ],
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+class _ButirPengaturan extends StatelessWidget {
+  const _ButirPengaturan(this.ikon, this.judul, {this.keterangan, this.onTap, this.bahaya = false});
+
+  final IconData ikon;
+  final String judul;
+  final String? keterangan;
+  final VoidCallback? onTap;
+  final bool bahaya;
+
+  @override
+  Widget build(BuildContext context) {
+    final warna = bahaya ? Theme.of(context).colorScheme.error : TemaAplikasi.hijau;
+    return ListTile(
+      onTap: onTap,
+      leading: Container(
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          color: bahaya ? warna.withValues(alpha: .1) : TemaAplikasi.hijauLembut,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Icon(ikon, size: 20, color: warna),
+      ),
+      title: Text(
+        judul,
+        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: bahaya ? warna : null),
+      ),
+      subtitle: keterangan == null ? null : Text(keterangan!, style: const TextStyle(fontSize: 12)),
+      trailing: onTap == null ? null : const Icon(Icons.chevron_right),
+    );
+  }
+}
+
+/// Pilih bank sampah tempat menabung untuk dihubungi; bila belum ada, cari bank terdekat.
+Future<void> _pilihBankDihubungi(BuildContext context, List<Saldo> daftar) {
+  if (daftar.isEmpty) return context.push('/warga/cari');
+  if (daftar.length == 1) return context.push('/warga/bank/${daftar.first.bankSampahId}');
+  return tampilkanSheet<void>(
+    context,
+    (lembar) => Padding(
+      padding: const EdgeInsets.fromLTRB(8, 20, 8, 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Padding(
+            padding: EdgeInsets.fromLTRB(12, 0, 12, 4),
+            child: Text('Hubungi bank sampah', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+          ),
+          const Padding(
+            padding: EdgeInsets.fromLTRB(12, 0, 12, 8),
+            child: Text(
+              'Pengelola bank sampah juga bisa mereset password bila kamu lupa.',
+              style: TextStyle(fontSize: 12.5, color: TemaAplikasi.redup),
+            ),
+          ),
+          for (final s in daftar)
+            ListTile(
+              leading: const Icon(Icons.storefront_outlined, color: TemaAplikasi.hijau),
+              title: Text(s.bankSampah?.nama ?? 'Bank sampah', style: const TextStyle(fontWeight: FontWeight.w700)),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () {
+                Navigator.pop(lembar);
+                context.push('/warga/bank/${s.bankSampahId}');
+              },
+            ),
+        ],
+      ),
+    ),
+  );
 }

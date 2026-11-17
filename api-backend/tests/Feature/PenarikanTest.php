@@ -19,13 +19,13 @@ class PenarikanTest extends TestCase
         $this->beriSaldo($warga, $bank, 10000);
         Sanctum::actingAs($warga);
 
-        $this->postJson('/api/v1/warga/penarikan', ['bank_sampah_id' => $bank->id, 'jumlah' => 10000.01])
+        $this->postJson('/api/v1/warga/penarikan', ['password' => 'password', 'bank_sampah_id' => $bank->id, 'jumlah' => 10000.01])
             ->assertUnprocessable()
             ->assertJsonPath('errors.jumlah.0', 'Saldo tidak mencukupi. Saldo Anda di bank sampah ini Rp 10.000.');
 
         // Saldo di bank lain tidak bisa dipakai
         $bankLain = $this->bank();
-        $this->postJson('/api/v1/warga/penarikan', ['bank_sampah_id' => $bankLain->id, 'jumlah' => 5000])
+        $this->postJson('/api/v1/warga/penarikan', ['password' => 'password', 'bank_sampah_id' => $bankLain->id, 'jumlah' => 5000])
             ->assertUnprocessable();
 
         $this->assertSame(0, Penarikan::count());
@@ -38,14 +38,14 @@ class PenarikanTest extends TestCase
         $this->beriSaldo($warga, $bank, 10000);
         Sanctum::actingAs($warga);
 
-        $this->postJson('/api/v1/warga/penarikan', ['bank_sampah_id' => $bank->id, 'jumlah' => 4000])
+        $this->postJson('/api/v1/warga/penarikan', ['password' => 'password', 'bank_sampah_id' => $bank->id, 'jumlah' => 4000])
             ->assertCreated()
             ->assertJsonPath('data.status', 'diajukan')
             ->assertJsonPath('data.jumlah', 4000);
 
         $this->assertSame(10000.0, $this->saldo($warga, $bank));
 
-        $this->postJson('/api/v1/warga/penarikan', ['bank_sampah_id' => $bank->id, 'jumlah' => 1000])
+        $this->postJson('/api/v1/warga/penarikan', ['password' => 'password', 'bank_sampah_id' => $bank->id, 'jumlah' => 1000])
             ->assertUnprocessable()
             ->assertJsonPath('errors.jumlah.0', 'Masih ada penarikan yang menunggu persetujuan di bank sampah ini.');
 
@@ -58,7 +58,7 @@ class PenarikanTest extends TestCase
         $warga = $this->warga();
         $this->beriSaldo($warga, $bank, 10000);
         Sanctum::actingAs($warga);
-        $id = $this->postJson('/api/v1/warga/penarikan', ['bank_sampah_id' => $bank->id, 'jumlah' => 4000.5])->json('data.id');
+        $id = $this->postJson('/api/v1/warga/penarikan', ['password' => 'password', 'bank_sampah_id' => $bank->id, 'jumlah' => 4000.5])->json('data.id');
 
         $operator = $this->operator($bank);
         Sanctum::actingAs($operator);
@@ -81,7 +81,7 @@ class PenarikanTest extends TestCase
         $warga = $this->warga();
         $nasabah = $this->beriSaldo($warga, $bank, 10000);
         Sanctum::actingAs($warga);
-        $id = $this->postJson('/api/v1/warga/penarikan', ['bank_sampah_id' => $bank->id, 'jumlah' => 8000])->json('data.id');
+        $id = $this->postJson('/api/v1/warga/penarikan', ['password' => 'password', 'bank_sampah_id' => $bank->id, 'jumlah' => 8000])->json('data.id');
 
         // Saldo turun setelah pengajuan (mis. koreksi), persetujuan harus gagal
         $nasabah->forceFill(['saldo' => 5000])->save();
@@ -99,7 +99,7 @@ class PenarikanTest extends TestCase
         $warga = $this->warga();
         $this->beriSaldo($warga, $bank, 10000);
         Sanctum::actingAs($warga);
-        $id = $this->postJson('/api/v1/warga/penarikan', ['bank_sampah_id' => $bank->id, 'jumlah' => 3000])->json('data.id');
+        $id = $this->postJson('/api/v1/warga/penarikan', ['password' => 'password', 'bank_sampah_id' => $bank->id, 'jumlah' => 3000])->json('data.id');
 
         Sanctum::actingAs($this->operator($bank));
         $this->patchJson("/api/v1/bs/penarikan/{$id}", ['aksi' => 'tolak', 'catatan' => 'Kas kosong'])
@@ -108,7 +108,7 @@ class PenarikanTest extends TestCase
         $this->assertSame(10000.0, $this->saldo($warga, $bank));
 
         Sanctum::actingAs($warga);
-        $this->postJson('/api/v1/warga/penarikan', ['bank_sampah_id' => $bank->id, 'jumlah' => 3000])->assertCreated();
+        $this->postJson('/api/v1/warga/penarikan', ['password' => 'password', 'bank_sampah_id' => $bank->id, 'jumlah' => 3000])->assertCreated();
     }
 
     public function test_operator_bank_lain_tidak_bisa_melihat_atau_memproses(): void
@@ -118,7 +118,7 @@ class PenarikanTest extends TestCase
         $warga = $this->warga();
         $this->beriSaldo($warga, $bankA, 10000);
         Sanctum::actingAs($warga);
-        $id = $this->postJson('/api/v1/warga/penarikan', ['bank_sampah_id' => $bankA->id, 'jumlah' => 3000])->json('data.id');
+        $id = $this->postJson('/api/v1/warga/penarikan', ['password' => 'password', 'bank_sampah_id' => $bankA->id, 'jumlah' => 3000])->json('data.id');
 
         Sanctum::actingAs($this->operator($bankB));
         $this->getJson('/api/v1/bs/penarikan')->assertOk()->assertJsonCount(0, 'data');
@@ -139,9 +139,44 @@ class PenarikanTest extends TestCase
         $bank->update(['is_aktif' => false]);
         Sanctum::actingAs($warga);
 
-        $this->postJson('/api/v1/warga/penarikan', ['bank_sampah_id' => $bank->id, 'jumlah' => 1000])
+        $this->postJson('/api/v1/warga/penarikan', ['password' => 'password', 'bank_sampah_id' => $bank->id, 'jumlah' => 1000])
             ->assertUnprocessable()
             ->assertJsonValidationErrors('bank_sampah_id');
+        $this->assertSame(0, Penarikan::count());
+    }
+
+    public function test_pengajuan_wajib_password_pemilik_akun(): void
+    {
+        $bank = $this->bank();
+        $warga = $this->warga();
+        $this->beriSaldo($warga, $bank, 10000);
+        Sanctum::actingAs($warga);
+
+        $this->postJson('/api/v1/warga/penarikan', ['bank_sampah_id' => $bank->id, 'jumlah' => 1000])
+            ->assertUnprocessable()
+            ->assertJsonPath('errors.password.0', 'Masukkan password untuk mengajukan penarikan.');
+        $this->postJson('/api/v1/warga/penarikan', ['password' => 'bukan-password', 'bank_sampah_id' => $bank->id, 'jumlah' => 1000])
+            ->assertUnprocessable()
+            ->assertJsonPath('errors.password.0', 'Password salah.');
+
+        $this->assertSame(0, Penarikan::count());
+        $this->assertSame(10000.0, $this->saldo($warga, $bank));
+    }
+
+    public function test_tebakan_password_dibatasi(): void
+    {
+        $bank = $this->bank();
+        $warga = $this->warga();
+        $this->beriSaldo($warga, $bank, 10000);
+        Sanctum::actingAs($warga);
+
+        for ($i = 0; $i < 5; $i++) {
+            $this->postJson('/api/v1/warga/penarikan', ['password' => "tebakan-{$i}", 'bank_sampah_id' => $bank->id, 'jumlah' => 1000])
+                ->assertUnprocessable();
+        }
+
+        $this->postJson('/api/v1/warga/penarikan', ['password' => 'password', 'bank_sampah_id' => $bank->id, 'jumlah' => 1000])
+            ->assertTooManyRequests();
         $this->assertSame(0, Penarikan::count());
     }
 
@@ -150,6 +185,6 @@ class PenarikanTest extends TestCase
         $bank = $this->bank();
         Sanctum::actingAs($this->operator($bank));
 
-        $this->postJson('/api/v1/warga/penarikan', ['bank_sampah_id' => $bank->id, 'jumlah' => 1000])->assertForbidden();
+        $this->postJson('/api/v1/warga/penarikan', ['password' => 'password', 'bank_sampah_id' => $bank->id, 'jumlah' => 1000])->assertForbidden();
     }
 }

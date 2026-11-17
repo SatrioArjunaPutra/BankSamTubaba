@@ -72,9 +72,9 @@ class AuthController extends Controller
     {
         return match ($role) {
             UserRole::Dlh => 'Akun DLH hanya bisa masuk lewat web dashboard.',
-            UserRole::BankSampah => "Akun ini terdaftar sebagai Bank sampah. Pilih 'Bank sampah' lalu coba lagi.",
-            UserRole::Bentor => "Akun ini terdaftar sebagai Bentor. Pilih 'Bentor' lalu coba lagi.",
-            UserRole::Warga => "Akun ini terdaftar sebagai Warga. Pilih 'Warga' lalu coba lagi.",
+            UserRole::BankSampah => 'Akun ini terdaftar sebagai pengelola bank sampah. Pilih Bank Sampah, lalu Pengelola.',
+            UserRole::Bentor => 'Akun ini terdaftar sebagai bentor. Pilih Bank Sampah, lalu Bentor.',
+            UserRole::Warga => 'Akun ini terdaftar sebagai warga. Pilih Warga, lalu coba lagi.',
         };
     }
 

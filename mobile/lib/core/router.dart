@@ -45,6 +45,11 @@ String? arahkan(AsyncValue<User?> auth, String lokasi) {
   final user = auth.value;
   if (user == null) return _rutePublik.contains(lokasi) ? null : '/login';
 
+  // Password sementara dari petugas wajib diganti sebelum membuka halaman lain
+  if (user.harusGantiPassword) {
+    return lokasi == '/akun/password' ? null : '/akun/password';
+  }
+
   final beranda = berandaRole(user.role);
   final boleh =
       lokasi == beranda ||
@@ -76,6 +81,9 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: 'password',
             builder: (_, _) => const GantiPasswordPage(),
           ),
+          GoRoute(path: 'perangkat', builder: (_, _) => const PerangkatPage()),
+          GoRoute(path: 'hapus', builder: (_, _) => const HapusAkunPage()),
+          GoRoute(path: 'privasi', builder: (_, _) => const KebijakanPrivasiPage()),
         ],
       ),
       GoRoute(

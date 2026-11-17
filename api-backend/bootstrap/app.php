@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\AuthenticateDevice;
 use App\Http\Middleware\EnsureAkunAktif;
+use App\Http\Middleware\EnsurePasswordSudahDiganti;
 use App\Http\Middleware\EnsureUserHasRole;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
@@ -24,6 +25,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'akun.aktif' => EnsureAkunAktif::class,
+            'password.diganti' => EnsurePasswordSudahDiganti::class,
             'role' => EnsureUserHasRole::class,
             'device.auth' => AuthenticateDevice::class,
         ]);
@@ -37,6 +39,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // Cek akun & role sebelum route model binding, agar role yang salah
         // selalu dapat 403 dan tidak bisa menebak ID mana yang ada (404).
         $middleware->prependToPriorityList(before: SubstituteBindings::class, prepend: EnsureAkunAktif::class);
+        $middleware->prependToPriorityList(before: SubstituteBindings::class, prepend: EnsurePasswordSudahDiganti::class);
         $middleware->prependToPriorityList(before: SubstituteBindings::class, prepend: EnsureUserHasRole::class);
 
         // Tidak ada halaman login web; tamu dijawab 401 JSON, bukan redirect

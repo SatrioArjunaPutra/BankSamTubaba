@@ -270,3 +270,67 @@ Color warnaStatus(String status) => switch (status) {
       'bertugas' => const Color(0xFF2563EB),
       _ => Colors.grey.shade700,
     };
+
+/// Minta password sebelum aksi penting (mis. tarik saldo). null bila dibatalkan.
+Future<String?> mintaPassword(BuildContext context, {required String judul, required String keterangan, String ya = 'Lanjutkan'}) =>
+    showDialog<String>(
+      context: context,
+      builder: (c) => _DialogPassword(judul: judul, keterangan: keterangan, ya: ya),
+    );
+
+class _DialogPassword extends StatefulWidget {
+  const _DialogPassword({required this.judul, required this.keterangan, required this.ya});
+
+  final String judul;
+  final String keterangan;
+  final String ya;
+
+  @override
+  State<_DialogPassword> createState() => _DialogPasswordState();
+}
+
+class _DialogPasswordState extends State<_DialogPassword> {
+  final _password = TextEditingController();
+  bool _sembunyi = true;
+
+  @override
+  void dispose() {
+    _password.dispose();
+    super.dispose();
+  }
+
+  void _kirim() {
+    if (_password.text.isNotEmpty) Navigator.pop(context, _password.text);
+  }
+
+  @override
+  Widget build(BuildContext context) => DialogAplikasi(
+        judul: widget.judul,
+        isi: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(widget.keterangan, style: const TextStyle(height: 1.4)),
+            const SizedBox(height: 14),
+            TextField(
+              controller: _password,
+              autofocus: true,
+              obscureText: _sembunyi,
+              onSubmitted: (_) => _kirim(),
+              decoration: InputDecoration(
+                labelText: 'Password',
+                suffixIcon: IconButton(
+                  tooltip: _sembunyi ? 'Tampilkan password' : 'Sembunyikan password',
+                  icon: Icon(_sembunyi ? Icons.visibility : Icons.visibility_off),
+                  onPressed: () => setState(() => _sembunyi = !_sembunyi),
+                ),
+              ),
+            ),
+          ],
+        ),
+        aksi: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Batal')),
+          FilledButton(onPressed: _kirim, child: Text(widget.ya)),
+        ],
+      );
+}

@@ -134,12 +134,12 @@ class AuthTest extends TestCase
         $this->postJson('/api/v1/auth/login', ['email' => 'operator@example.com', 'password' => 'password', 'role' => 'warga'])
             ->assertForbidden()
             ->assertJsonPath('status', 'gagal')
-            ->assertJsonPath('pesan', "Akun ini terdaftar sebagai Bank sampah. Pilih 'Bank sampah' lalu coba lagi.")
+            ->assertJsonPath('pesan', 'Akun ini terdaftar sebagai pengelola bank sampah. Pilih Bank Sampah, lalu Pengelola.')
             ->assertJsonMissingPath('data');
 
         $this->postJson('/api/v1/auth/login', ['email' => 'warga@example.com', 'password' => 'password', 'role' => 'bentor'])
             ->assertForbidden()
-            ->assertJsonPath('pesan', "Akun ini terdaftar sebagai Warga. Pilih 'Warga' lalu coba lagi.");
+            ->assertJsonPath('pesan', 'Akun ini terdaftar sebagai warga. Pilih Warga, lalu coba lagi.');
 
         $this->assertSame(0, $operator->tokens()->count());
         $this->assertSame(0, $warga->tokens()->count());

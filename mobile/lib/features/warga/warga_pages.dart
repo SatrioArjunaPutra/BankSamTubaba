@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/api/api_exception.dart';
 import '../../core/daftar_berhalaman.dart';
@@ -241,7 +242,27 @@ class DetailBankPage extends ConsumerWidget {
             Text(b.nama, style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 4),
             Text('${b.alamat ?? '${b.tiyuh}, ${b.kecamatan}'}\nKode ${b.kode}'),
-            if (b.noHpPublik != null) Text('HP: ${b.noHpPublik}'),
+            if (b.noHpPublik != null) ...[
+              Text('HP: ${b.noHpPublik}'),
+              const SizedBox(height: 8),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(minimumSize: const Size(0, 40)),
+                  onPressed: () async {
+                    final ok = await launchUrl(
+                      Uri.parse('https://wa.me/${nomorWhatsApp(b.noHpPublik!)}'),
+                      mode: LaunchMode.externalApplication,
+                    ).catchError((_) => false);
+                    if (!ok && context.mounted) {
+                      tampilPesan(context, 'Tidak bisa membuka WhatsApp.', gagal: true);
+                    }
+                  },
+                  icon: const Icon(Icons.chat_outlined, size: 18),
+                  label: const Text('Hubungi lewat WhatsApp'),
+                ),
+              ),
+            ],
             if (b.lat != null) ...[
               const SizedBox(height: 12),
               ClipRRect(
@@ -645,12 +666,19 @@ class _PenarikanPageState extends ConsumerState<PenarikanPage> {
       );
       return;
     }
+    final password = await mintaPassword(
+      context,
+      judul: 'Konfirmasi penarikan',
+      keterangan: 'Tarik ${rupiah(jumlah)} dari ${saldo.bankSampah?.nama ?? 'bank sampah ini'}. Masukkan password akunmu.',
+      ya: 'Ajukan',
+    );
+    if (password == null || !mounted) return;
     setState(() => _mengirim = true);
     final ok = await jalankan(
       context,
       () => ref
           .read(wargaRepositoryProvider)
-          .ajukanPenarikan(_bankId!, jumlah, null),
+          .ajukanPenarikan(_bankId!, jumlah, null, password: password),
       sukses:
           'Penarikan diajukan. Ambil uang di bank sampah setelah disetujui.',
     );

@@ -57,6 +57,7 @@ class User extends Authenticatable
             'lat' => 'float',
             'lng' => 'float',
             'is_aktif' => 'boolean',
+            'harus_ganti_password' => 'boolean',
         ];
     }
 

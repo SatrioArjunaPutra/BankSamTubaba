@@ -36,6 +36,7 @@ class User {
     this.alamat,
     this.lat,
     this.lng,
+    this.harusGantiPassword = false,
   });
 
   final int id;
@@ -48,6 +49,22 @@ class User {
   final double? lat;
   final double? lng;
 
+  /// Akun memakai password sementara dari petugas dan wajib menggantinya dulu.
+  final bool harusGantiPassword;
+
+  User salin({bool? harusGantiPassword}) => User(
+        id: id,
+        name: name,
+        email: email,
+        role: role,
+        phone: phone,
+        bankSampah: bankSampah,
+        alamat: alamat,
+        lat: lat,
+        lng: lng,
+        harusGantiPassword: harusGantiPassword ?? this.harusGantiPassword,
+      );
+
   factory User.dariJson(Map<String, dynamic> json) => User(
         id: json['id'] as int,
         name: '${json['name']}',
@@ -58,5 +75,25 @@ class User {
         alamat: json['alamat'] as String?,
         lat: double.tryParse('${json['lat']}'),
         lng: double.tryParse('${json['lng']}'),
+        harusGantiPassword: json['harus_ganti_password'] == true,
+      );
+}
+
+/// Satu sesi login di sebuah perangkat.
+class Perangkat {
+  const Perangkat({required this.id, required this.nama, required this.saatIni, this.terakhirDipakai, this.dibuat});
+
+  final int id;
+  final String nama;
+  final bool saatIni;
+  final DateTime? terakhirDipakai;
+  final DateTime? dibuat;
+
+  factory Perangkat.dariJson(Map<String, dynamic> json) => Perangkat(
+        id: json['id'] as int,
+        nama: '${json['nama'] ?? 'Perangkat'}',
+        saatIni: json['saat_ini'] == true,
+        terakhirDipakai: DateTime.tryParse('${json['terakhir_dipakai_at']}')?.toLocal(),
+        dibuat: DateTime.tryParse('${json['dibuat_at']}')?.toLocal(),
       );
 }

@@ -2,11 +2,12 @@
 
 namespace App\Http\Resources;
 
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * @mixin \App\Models\User
+ * @mixin User
  */
 class UserResource extends JsonResource
 {
@@ -31,6 +32,7 @@ class UserResource extends JsonResource
             'lat' => $this->lat,
             'lng' => $this->lng,
             'is_aktif' => (bool) $this->is_aktif,
+            'harus_ganti_password' => (bool) $this->harus_ganti_password,
         ];
     }
 }

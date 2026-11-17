@@ -55,3 +55,9 @@ double keDouble(Object? v) => v is num ? v.toDouble() : double.tryParse('${v ?? 
 double? keDoubleAtauNull(Object? v) => v == null ? null : keDouble(v);
 
 DateTime? keTanggal(Object? v) => v is String ? DateTime.tryParse(v) : null;
+
+/// Nomor HP Indonesia untuk tautan wa.me: "0812-3456" → "628123456".
+String nomorWhatsApp(String nomor) {
+  final angka = nomor.replaceAll(RegExp(r'\D'), '');
+  return angka.startsWith('0') ? '62${angka.substring(1)}' : angka;
+}

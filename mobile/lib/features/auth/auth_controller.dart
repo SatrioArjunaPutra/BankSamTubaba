@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_client.dart';
@@ -27,7 +28,7 @@ class AuthController extends AsyncNotifier<User?> {
 
   /// [peran] pilihan "Masuk sebagai"; server menolak (403) bila tidak cocok dengan role akun.
   Future<void> login(String email, String password, {required String peran}) async {
-    final body = await _api.post('/auth/login', data: {'email': email, 'password': password, 'device_name': 'android', 'role': peran});
+    final body = await _api.post('/auth/login', data: {'email': email, 'password': password, 'device_name': kIsWeb ? 'Browser' : 'Aplikasi Android', 'role': peran});
     await _simpanSesi(body);
   }
 
@@ -49,7 +50,7 @@ class AuthController extends AsyncNotifier<User?> {
       'alamat': alamat,
       'lat': lat,
       'lng': lng,
-      'device_name': 'android',
+      'device_name': kIsWeb ? 'Browser' : 'Aplikasi Android',
     });
     await _simpanSesi(body);
   }

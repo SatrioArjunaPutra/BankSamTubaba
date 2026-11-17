@@ -8,6 +8,7 @@ import '../../core/models/operasional.dart';
 import '../../core/repositories.dart';
 import '../../core/theme.dart';
 import 'bs_providers.dart';
+import 'reset_password.dart';
 
 class NasabahTab extends ConsumerStatefulWidget {
   const NasabahTab({super.key});
@@ -122,6 +123,18 @@ class _NasabahTabState extends ConsumerState<NasabahTab> {
                             ),
                           ],
                         ),
+                        if (w.sudahNasabah)
+                          PopupMenuButton<String>(
+                            tooltip: 'Pilihan untuk ${w.name}',
+                            onSelected: (_) => resetPasswordAkun(
+                              context,
+                              nama: w.name,
+                              reset: () => ref.read(bankSampahRepositoryProvider).resetPasswordNasabah(w.id),
+                            ),
+                            itemBuilder: (_) => const [
+                              PopupMenuItem(value: 'reset-password', child: Text('Reset password')),
+                            ],
+                          ),
                       ],
                     ),
                     if ((d?.penarikanDiajukan ?? 0) > 0)

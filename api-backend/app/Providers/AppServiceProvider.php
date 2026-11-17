@@ -44,6 +44,12 @@ class AppServiceProvider extends ServiceProvider
             Limit::perHour(20)->by('register-jam|'.$request->ip()),
         ]);
 
+        // Aksi yang meminta password (hapus akun, tarik saldo): 5/menit per user agar password tidak bisa ditebak
+        RateLimiter::for('konfirmasi-password', fn (Request $request) => Limit::perMinute(5)->by('konfirmasi-password|'.$request->user()?->id));
+
+        // Reset password oleh pengelola: 20/jam per pengelola
+        RateLimiter::for('reset-password', fn (Request $request) => Limit::perHour(20)->by('reset-password|'.$request->user()?->id));
+
         // Kirim pesan chat: 30/menit per user
         RateLimiter::for('pesan', fn (Request $request) => Limit::perMinute(30)->by('pesan|'.$request->user()?->id));
 

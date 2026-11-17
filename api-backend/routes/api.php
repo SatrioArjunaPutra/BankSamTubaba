@@ -6,7 +6,9 @@ use App\Http\Controllers\Api\Bentor;
 use App\Http\Controllers\Api\BeritaController;
 use App\Http\Controllers\Api\Bs;
 use App\Http\Controllers\Api\Dlh;
+use App\Http\Controllers\Api\HapusAkunController;
 use App\Http\Controllers\Api\JenisSampahController;
+use App\Http\Controllers\Api\PerangkatController;
 use App\Http\Controllers\Api\Preloved;
 use App\Http\Controllers\Api\ProfilController;
 use App\Http\Controllers\Api\SensorController;
@@ -37,11 +39,16 @@ Route::prefix('v1')->group(function () {
     Route::get('/berita/{berita}', [BeritaController::class, 'show'])->whereNumber('berita')->middleware('throttle:etalase');
 
     // --- AREA PRIVAT (wajib token login & akun aktif) ---
-    Route::middleware(['auth:sanctum', 'akun.aktif'])->group(function () {
-        Route::post('/auth/logout', [AuthController::class, 'logout']);
-        Route::get('/me', [ProfilController::class, 'show']);
+    // Akun dengan password sementara dari petugas hanya bisa melihat profil, mengganti password, dan keluar
+    Route::middleware(['auth:sanctum', 'akun.aktif', 'password.diganti'])->group(function () {
+        Route::post('/auth/logout', [AuthController::class, 'logout'])->withoutMiddleware('password.diganti');
+        Route::get('/me', [ProfilController::class, 'show'])->withoutMiddleware('password.diganti');
         Route::patch('/me', [ProfilController::class, 'update']);
-        Route::put('/me/password', [ProfilController::class, 'ubahPassword']);
+        Route::put('/me/password', [ProfilController::class, 'ubahPassword'])->withoutMiddleware('password.diganti');
+        Route::delete('/me', HapusAkunController::class)->middleware('throttle:konfirmasi-password');
+        Route::get('/me/perangkat', [PerangkatController::class, 'index']);
+        Route::post('/me/perangkat/keluar-lainnya', [PerangkatController::class, 'keluarLainnya']);
+        Route::delete('/me/perangkat/{perangkat}', [PerangkatController::class, 'hapus'])->whereNumber('perangkat');
 
         // Umum
         Route::get('/bank-sampah', [BankSampahController::class, 'index']);
@@ -57,7 +64,7 @@ Route::prefix('v1')->group(function () {
             Route::post('/penjemputan', [Warga\PenjemputanController::class, 'store'])->middleware('throttle:jemput');
             Route::post('/penjemputan/{penjemputan}/batal', [Warga\PenjemputanController::class, 'batal']);
             Route::get('/penarikan', [Warga\PenarikanController::class, 'index']);
-            Route::post('/penarikan', [Warga\PenarikanController::class, 'store']);
+            Route::post('/penarikan', [Warga\PenarikanController::class, 'store'])->middleware('throttle:konfirmasi-password');
         });
 
         // Preloved & chat (warga). Ubah barang dengan foto baru: POST multipart + _method=PATCH
@@ -97,6 +104,10 @@ Route::prefix('v1')->group(function () {
             Route::patch('/armada/{armada}', [Bs\ArmadaController::class, 'update']);
             Route::post('/bentor', [Bs\ArmadaController::class, 'buatBentor']);
             Route::patch('/bentor/{user}/status', [Bs\ArmadaController::class, 'ubahStatusBentor']);
+            Route::post('/bentor/{user}/reset-password', [Bs\ResetPasswordController::class, 'bentor'])
+                ->whereNumber('user')->middleware('throttle:reset-password');
+            Route::post('/nasabah/{warga}/reset-password', [Bs\ResetPasswordController::class, 'nasabah'])
+                ->whereNumber('warga')->middleware('throttle:reset-password');
             Route::get('/penarikan', [Bs\PenarikanController::class, 'index']);
             Route::patch('/penarikan/{penarikan}', [Bs\PenarikanController::class, 'update']);
             Route::get('/penjualan-pengepul', [Bs\PenjualanPengepulController::class, 'index']);

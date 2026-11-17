@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:bank_sampah_tubaba/core/api/api_client.dart';
 import 'package:bank_sampah_tubaba/core/api/mock_backend.dart';
+import 'package:bank_sampah_tubaba/core/komponen_ui.dart';
 import 'package:bank_sampah_tubaba/core/peta.dart';
 import 'package:bank_sampah_tubaba/core/providers.dart';
 import 'package:bank_sampah_tubaba/core/storage/token_storage.dart';
@@ -123,7 +124,10 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Bank sampah'));
+    await tester.tap(find.descendant(
+      of: find.byType(SegmenReferensi<bool>),
+      matching: find.text('Bank Sampah'),
+    ));
     await tester.pumpAndSettle();
     await tester.enterText(find.widgetWithText(TextFormField, 'Email'), 'operator@demo.id');
     await tester.enterText(find.widgetWithText(TextFormField, 'Password'), 'password');

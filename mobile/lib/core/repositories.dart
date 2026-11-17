@@ -69,6 +69,19 @@ class UmumRepository {
     );
     return '${body['pesan']}';
   }
+
+  Future<List<Perangkat>> perangkat() => _api.list('/me/perangkat', Perangkat.dariJson);
+
+  Future<void> keluarkanPerangkat(int id) => _api.delete('/me/perangkat/$id');
+
+  /// Mengembalikan jumlah perangkat yang dikeluarkan.
+  Future<int> keluarPerangkatLain() async {
+    final body = await _api.post('/me/perangkat/keluar-lainnya');
+    return ((body['data'] as Map?)?['jumlah'] as num?)?.toInt() ?? 0;
+  }
+
+  /// Khusus warga; ditolak bila masih ada saldo, penarikan, atau penjemputan berjalan.
+  Future<void> hapusAkun(String password) => _api.delete('/me', data: {'password': password});
 }
 
 class WargaRepository {
@@ -121,17 +134,20 @@ class WargaRepository {
   Future<Halaman<Penarikan>> penarikan({int halaman = 1}) =>
       _api.daftar('/warga/penarikan', Penarikan.dariJson, halaman: halaman);
 
+  /// [password] konfirmasi pemilik akun; server menolak (422) bila salah.
   Future<Penarikan> ajukanPenarikan(
     int bankSampahId,
     double jumlah,
-    String? catatan,
-  ) async => _data(
+    String? catatan, {
+    required String password,
+  }) async => _data(
     await _api.post(
       '/warga/penarikan',
       data: {
         'bank_sampah_id': bankSampahId,
         'jumlah': jumlah,
         'catatan': catatan,
+        'password': password,
       },
     ),
     Penarikan.dariJson,
@@ -274,6 +290,15 @@ class BankSampahRepository {
   /// Nonaktif = driver langsung keluar dari semua perangkat & armadanya nonaktif.
   Future<void> ubahStatusAkunBentor(int userId, bool aktif) =>
       _api.patch('/bs/bentor/$userId/status', data: {'is_aktif': aktif});
+
+  /// Password sementara untuk nasabah bank ini; hanya ditampilkan sekali.
+  Future<String> resetPasswordNasabah(int wargaId) async =>
+      _sandiSementara(await _api.post('/bs/nasabah/$wargaId/reset-password'));
+
+  Future<String> resetPasswordBentor(int userId) async =>
+      _sandiSementara(await _api.post('/bs/bentor/$userId/reset-password'));
+
+  String _sandiSementara(Map<String, dynamic> body) => '${(body['data'] as Map)['password_sementara']}';
 
   Future<Halaman<Penarikan>> penarikan(String? status, {int halaman = 1}) =>
       _api.daftar(
