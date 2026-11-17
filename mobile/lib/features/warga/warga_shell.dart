@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show ScrollCacheExtent;
+import 'package:flutter/services.dart' show SystemUiOverlayStyle;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/daftar_berhalaman.dart';
 import '../../core/format.dart';
 import '../../core/komponen_ui.dart';
+import '../../core/logo_aplikasi.dart';
 import '../../core/models/bank_sampah.dart';
 import '../../core/models/transaksi.dart';
 import '../../core/repositories.dart';
@@ -75,12 +77,9 @@ class _WargaShellState extends ConsumerState<WargaShell> {
 
     return Scaffold(
       extendBody: true,
+      // Beranda memakai header hijau sendiri yang menyatu dengan bilah status
       appBar: _tab == 0
-          ? HeaderPeran(
-              judul: ref.watch(authProvider).value?.name ?? 'Warga Tubaba',
-              subjudul: sapaanWaktu(),
-              inisial: 'W',
-            )
+          ? null
           : AppBar(
               title: Text(_tab == 4 ? 'Profil' : _judul[_tab]),
               actions: [
@@ -164,7 +163,7 @@ class BerandaWarga extends ConsumerWidget {
         scrollCacheExtent: const ScrollCacheExtent.pixels(2000),
         padding: paddingAman(context, dasar: const EdgeInsets.only(bottom: 20)),
         children: [
-          const _HeaderSaldo(),
+          const _HeaderBeranda(),
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
             child: Column(
@@ -239,122 +238,360 @@ class BerandaWarga extends ConsumerWidget {
   }
 }
 
-/// Bidang hijau bermotif tapis dengan kartu saldo putih yang menumpang di bawahnya.
-class _HeaderSaldo extends ConsumerWidget {
-  const _HeaderSaldo();
+/// Header hijau penuh sampai bilah status: cari, merek, ilustrasi bentor, lalu kartu sapaan dan saldo.
+class _HeaderBeranda extends ConsumerWidget {
+  const _HeaderBeranda();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final atas = MediaQuery.paddingOf(context).top;
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light,
+      child: Stack(
+        children: [
+          Container(
+            height: atas + 300,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [TemaAplikasi.hijau, TemaAplikasi.hijauSedang],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+            child: Stack(
+              children: [
+                // Lingkaran samar sebagai hiasan, seperti header aplikasi layanan desa
+                Positioned(
+                  top: -60,
+                  right: -50,
+                  child: _Lingkaran(ukuran: 210, alpha: .10),
+                ),
+                Positioned(
+                  top: atas + 150,
+                  right: 60,
+                  child: _Lingkaran(ukuran: 120, alpha: .07),
+                ),
+                const Positioned.fill(
+                  child: Opacity(
+                    opacity: .10,
+                    child: DecoratedBox(decoration: BoxDecoration(image: corakTapis)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: EdgeInsets.fromLTRB(20, atas + 12, 20, 0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Semantics(
+                        button: true,
+                        label: 'Cari bank sampah',
+                        excludeSemantics: true,
+                        child: Material(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(28),
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(28),
+                            onTap: () => context.push('/warga/cari'),
+                            child: const Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.search, color: TemaAplikasi.redup),
+                                  SizedBox(width: 10),
+                                  Expanded(
+                                    child: Text(
+                                      'Cari bank sampah terdekat…',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(color: TemaAplikasi.redup, fontSize: 14),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Material(
+                      color: Colors.white,
+                      shape: const CircleBorder(),
+                      child: IconButton(
+                        tooltip: 'Chat dan tawaran',
+                        onPressed: () => context.push('/warga/chat'),
+                        icon: const Icon(Icons.chat_bubble_outline, color: TemaAplikasi.hijauPekat),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                width: 50,
+                                height: 50,
+                                padding: const EdgeInsets.all(5),
+                                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14)),
+                                child: const LogoAplikasi(ukuran: 40),
+                              ),
+                              const SizedBox(width: 10),
+                              const Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    FittedBox(
+                                      fit: BoxFit.scaleDown,
+                                      alignment: Alignment.centerLeft,
+                                      child: Text(
+                                        'Bank Sampah',
+                                        style: TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w800, height: 1.05),
+                                      ),
+                                    ),
+                                    FittedBox(
+                                      fit: BoxFit.scaleDown,
+                                      alignment: Alignment.centerLeft,
+                                      child: Text(
+                                        'KABUPATEN TULANG BAWANG BARAT',
+                                        style: TextStyle(color: Color(0xE6FFFFFF), fontSize: 9.5, fontWeight: FontWeight.w800, letterSpacing: .6),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          const Text(
+                            'Tabung sampah, minta jemput, dan jual barang bekas',
+                            style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+                          ),
+                          const SizedBox(height: 10),
+                          // Mengecil di layar sempit agar tidak meluap
+                          const FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: Row(
+                              children: [
+                                _BulatKecil(teks: 'Rp'),
+                                _Titik(),
+                                _BulatKecil(ikon: Icons.recycling),
+                                _Titik(),
+                                _BulatKecil(ikon: Icons.local_shipping_outlined),
+                                SizedBox(width: 6),
+                                _BulatKecil(ikon: Icons.storefront_outlined),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Image.asset(
+                        'assets/illustrations/ikon/jemput.png',
+                        width: 108,
+                        height: 108,
+                        excludeFromSemantics: true,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                const MunculBertahap(child: SizedBox(width: double.infinity, child: _KartuSapaan())),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Lingkaran extends StatelessWidget {
+  const _Lingkaran({required this.ukuran, required this.alpha});
+
+  final double ukuran;
+  final double alpha;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        width: ukuran,
+        height: ukuran,
+        decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white.withValues(alpha: alpha)),
+      );
+}
+
+/// Lingkaran kecil berisi teks "Rp" atau ikon di deret bawah merek.
+class _BulatKecil extends StatelessWidget {
+  const _BulatKecil({this.teks, this.ikon});
+
+  final String? teks;
+  final IconData? ikon;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        width: 32,
+        height: 32,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: teks != null ? TemaAplikasi.limau : TemaAplikasi.hijauPekat.withValues(alpha: .45),
+        ),
+        child: teks != null
+            ? Text(teks!, style: const TextStyle(color: TemaAplikasi.hijauPekat, fontSize: 11.5, fontWeight: FontWeight.w800))
+            : Icon(ikon, size: 17, color: TemaAplikasi.limau),
+      );
+}
+
+class _Titik extends StatelessWidget {
+  const _Titik();
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 5),
+        child: Row(
+          children: [
+            for (var i = 0; i < 3; i++)
+              Container(
+                width: 5,
+                height: 5,
+                margin: const EdgeInsets.symmetric(horizontal: 1.5),
+                decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0xB3FFFFFF)),
+              ),
+          ],
+        ),
+      );
+}
+
+/// Kartu putih berisi sapaan, saldo, dan tombol tarik saldo.
+class _KartuSapaan extends ConsumerWidget {
+  const _KartuSapaan();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final saldo = ref.watch(saldoProvider);
-    return Stack(
-      children: [
-        Container(
-          height: 92,
-          decoration: const BoxDecoration(
-            color: TemaAplikasi.hijauPekat,
-            image: corakTapis,
-            borderRadius: BorderRadius.vertical(bottom: Radius.circular(28)),
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-          child: MunculBertahap(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: TemaAplikasi.garisHijau, width: 1.5),
-                boxShadow: [
-                  BoxShadow(
-                    color: TemaAplikasi.hijauPekat.withValues(alpha: .12),
-                    blurRadius: 24,
-                    offset: const Offset(0, 10),
+    final nama = (ref.watch(authProvider).value?.name ?? 'Warga').trim().split(' ').first;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: TemaAplikasi.garisHijau, width: 1.5),
+        boxShadow: [
+          BoxShadow(color: TemaAplikasi.hijauPekat.withValues(alpha: .14), blurRadius: 24, offset: const Offset(0, 10)),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+        child: TampilanAsync(
+          nilai: saldo,
+          onUlang: () => ref.invalidate(saldoProvider),
+          data: (s) => Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Halo, $nama 👋',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(color: TemaAplikasi.hijauLembut, borderRadius: BorderRadius.circular(20)),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 7,
+                          height: 7,
+                          decoration: const BoxDecoration(shape: BoxShape.circle, color: TemaAplikasi.hijau),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          sapaanWaktu().replaceAll(',', ''),
+                          style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: TemaAplikasi.hijauPekat),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
-              child: Padding(
-                padding: const EdgeInsets.all(18),
-                child: TampilanAsync(
-                  nilai: saldo,
-                  onUlang: () => ref.invalidate(saldoProvider),
-                  data: (s) => Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            width: 44,
-                            height: 44,
-                            decoration: BoxDecoration(
-                              color: TemaAplikasi.hijauLembut,
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            padding: const EdgeInsets.all(5),
-                            child: Image.asset('assets/illustrations/ikon/dompet.png', excludeFromSemantics: true),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'Saldo tabungan',
-                                  style: TextStyle(color: TemaAplikasi.redup, fontSize: 12.5, fontWeight: FontWeight.w600),
-                                ),
-                                // Saldo besar mengecil agar tetap satu baris
-                                AngkaNaik(
-                                  nilai: s.total,
-                                  format: rupiah,
-                                  style: const TextStyle(
-                                    color: TemaAplikasi.hijauPekat,
-                                    fontSize: 28,
-                                    fontWeight: FontWeight.w800,
-                                    letterSpacing: -.8,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      const Divider(height: 26, color: TemaAplikasi.hijauLembut),
-                      Row(
-                        children: [
-                          const Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'NILAI POIN',
-                                  style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w800, letterSpacing: .5, color: TemaAplikasi.hijau),
-                                ),
-                                Text('1 poin = 1 rupiah', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600)),
-                              ],
-                            ),
-                          ),
-                          FilledButton.icon(
-                            // Tema bawaan membuat tombol selebar layar; di dalam Row lebarnya harus dibatasi
-                            style: FilledButton.styleFrom(
-                              minimumSize: const Size(0, 44),
-                              padding: const EdgeInsets.symmetric(horizontal: 14),
-                            ),
-                            onPressed: () async {
-                              await context.push('/warga/penarikan');
-                              ref.invalidate(saldoProvider);
-                            },
-                            icon: const Icon(Icons.arrow_forward, size: 18),
-                            label: const Text('Tarik saldo'),
-                          ),
-                        ],
-                      ),
-                    ],
+              const Divider(height: 24, color: TemaAplikasi.hijauLembut),
+              Row(
+                children: [
+                  Container(
+                    width: 46,
+                    height: 46,
+                    padding: const EdgeInsets.all(5),
+                    decoration: BoxDecoration(color: TemaAplikasi.hijauLembut, borderRadius: BorderRadius.circular(14)),
+                    child: Image.asset('assets/illustrations/ikon/dompet.png', excludeFromSemantics: true),
                   ),
-                ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Saldo tabungan',
+                          style: TextStyle(color: TemaAplikasi.redup, fontSize: 12, fontWeight: FontWeight.w600),
+                        ),
+                        // Saldo besar mengecil agar tetap satu baris
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: AngkaNaik(
+                            nilai: s.total,
+                            format: rupiah,
+                            style: const TextStyle(
+                              color: TemaAplikasi.hijauPekat,
+                              fontSize: 24,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -.6,
+                            ),
+                          ),
+                        ),
+                        const Text('1 poin = 1 rupiah', style: TextStyle(fontSize: 11, color: TemaAplikasi.redup)),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  FilledButton.icon(
+                    // Tema bawaan membuat tombol selebar layar; di dalam Row lebarnya harus dibatasi
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size(0, 44),
+                      padding: const EdgeInsets.symmetric(horizontal: 14),
+                    ),
+                    onPressed: () async {
+                      await context.push('/warga/penarikan');
+                      ref.invalidate(saldoProvider);
+                    },
+                    icon: const Icon(Icons.arrow_forward, size: 18),
+                    label: const Text('Tarik saldo'),
+                  ),
+                ],
               ),
-            ),
+            ],
           ),
         ),
-      ],
+      ),
     );
   }
 }
