@@ -20,6 +20,7 @@ import 'package:bank_sampah_tubaba/features/preloved/preloved_repository.dart';
 import 'package:bank_sampah_tubaba/core/storage/token_storage.dart';
 import 'package:bank_sampah_tubaba/features/bank_sampah/permintaan_setoran.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:image_picker/image_picker.dart';
 
 const _url = String.fromEnvironment('KONTRAK_API_URL');
 const _password = String.fromEnvironment('KONTRAK_PASSWORD');
@@ -217,7 +218,7 @@ void main() {
       );
       final foto = [
         for (var i = 0; i < 2; i++)
-          (await File('${dir.path}/f$i.png').writeAsBytes(png)).path,
+          XFile((await File('${dir.path}/f$i.png').writeAsBytes(png)).path),
       ];
 
       final barang = await penjual.pasang({

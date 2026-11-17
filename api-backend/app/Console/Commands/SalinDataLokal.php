@@ -14,8 +14,9 @@ use Throwable;
  * Menyalin data SQLite lokal dan foto unggahan ke database dan disk aktif (Supabase).
  *
  * Token login, sesi, cache, antrean, serta data sensor sengaja TIDAK disalin.
- * Hanya berjalan pada database tujuan yang sudah dimigrasi dan masih kosong,
- * dan semua baris masuk dalam satu transaksi.
+ * Hanya berjalan pada database tujuan yang sudah dimigrasi dan masih kosong, kecuali
+ * dengan --ganti yang lebih dulu mencadangkan lalu menghapus isi tujuan.
+ * Semua perubahan pada database masuk dalam satu transaksi.
  */
 class SalinDataLokal extends Command
 {
@@ -23,7 +24,9 @@ class SalinDataLokal extends Command
         {sqlite : Path database SQLite sumber}
         {--foto-dari= : Folder foto sumber (bawaan storage/app/public)}
         {--tanpa-foto : Hanya menyalin isi database}
-        {--hanya-foto : Mengulang unggahan foto tanpa menyentuh database}';
+        {--hanya-foto : Mengulang unggahan foto tanpa menyentuh database}
+        {--ganti : Cadangkan dan hapus isi tujuan, lalu ganti dengan data sumber}
+        {--cadangan= : Berkas cadangan untuk --ganti (bawaan di storage/app)}';
 
     protected $description = 'Salin data SQLite lokal dan foto ke database dan disk aktif';
 
@@ -70,15 +73,31 @@ class SalinDataLokal extends Command
         }
 
         $this->info('Tujuan: '.$tujuan->getDriverName().' / '.($tujuan->getConfig('host') ?? '-').' / '.$tujuan->getDatabaseName());
-        $this->table(['Tabel', 'Baris'], array_map(fn (string $t): array => [$t, $sumber->table($t)->count()], self::TABEL));
+        $this->info('Foto: '.($this->option('tanpa-foto') ? 'tidak disalin' : 'ke disk '.config('filesystems.upload_disk')));
+        $ganti = (bool) $this->option('ganti');
+        $this->table(
+            $ganti ? ['Tabel', 'Baris sumber', 'Baris tujuan yang dihapus'] : ['Tabel', 'Baris'],
+            array_map(fn (string $t): array => array_filter(
+                [$t, $sumber->table($t)->count(), $ganti ? $tujuan->table($t)->count() : null],
+                fn ($nilai) => $nilai !== null,
+            ), self::TABEL),
+        );
 
-        if (! $this->confirm('Salin data ini ke tujuan di atas?')) {
+        if (! $this->confirm($ganti ? 'HAPUS isi tujuan di atas, lalu ganti dengan data sumber?' : 'Salin data ini ke tujuan di atas?')) {
             $this->warn('Dibatalkan, tidak ada yang disalin.');
 
             return self::FAILURE;
         }
 
-        $tujuan->transaction(function () use ($sumber, $tujuan) {
+        if ($ganti) {
+            $this->info('Cadangan isi tujuan: '.$this->cadangkan($tujuan));
+        }
+
+        $tujuan->transaction(function () use ($sumber, $tujuan, $ganti) {
+            if ($ganti) {
+                $this->kosongkan($tujuan);
+            }
+
             foreach (self::TABEL as $tabel) {
                 $this->salinTabel($sumber, $tujuan, $tabel);
             }
@@ -99,7 +118,7 @@ class SalinDataLokal extends Command
                 return "Tabel {$tabel} belum ada di tujuan. Jalankan php artisan migrate --force dahulu.";
             }
 
-            if ($tujuan->table($tabel)->exists()) {
+            if (! $this->option('ganti') && $tujuan->table($tabel)->exists()) {
                 return "Tabel {$tabel} di tujuan sudah berisi data. Penyalinan hanya untuk database kosong.";
             }
 
@@ -114,6 +133,28 @@ class SalinDataLokal extends Command
         }
 
         return null;
+    }
+
+    private function cadangkan(Connection $tujuan): string
+    {
+        $berkas = $this->option('cadangan') ?: storage_path('app/cadangan-sebelum-ganti-'.date('Ymd-His').'.json');
+        $isi = [];
+
+        foreach (self::TABEL as $tabel) {
+            $isi[$tabel] = $tujuan->table($tabel)->orderBy('id')->get();
+        }
+
+        File::put($berkas, json_encode($isi, JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+
+        return $berkas;
+    }
+
+    private function kosongkan(Connection $tujuan): void
+    {
+        // Token dan sesi lama ikut dihapus: tanpa ini, token lama bisa masuk sebagai pengguna baru ber-id sama
+        foreach (['personal_access_tokens', 'sessions', ...array_reverse(self::TABEL)] as $tabel) {
+            $tujuan->table($tabel)->delete();
+        }
     }
 
     private function salinTabel(Connection $sumber, Connection $tujuan, string $tabel): void

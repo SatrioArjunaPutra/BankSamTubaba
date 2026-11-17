@@ -1,4 +1,3 @@
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -219,7 +218,8 @@ class _FormBarangPageState extends ConsumerState<FormBarangPage> {
   late String? _kategori = widget.barang?.kategori;
   late String? _kondisi = widget.barang?.kondisi;
   late String? _kecamatan = widget.barang?.kecamatan;
-  final _foto = <XFile>[];
+  // Isi foto disimpan agar pratinjau dan cek ukuran berjalan juga di browser
+  final _foto = <({XFile berkas, Uint8List isi})>[];
   bool _menyimpan = false;
   Map<String, String> _galat = {};
 
@@ -241,10 +241,11 @@ class _FormBarangPageState extends ConsumerState<FormBarangPage> {
 
     var terlaluBesar = 0;
     for (final f in dipilih.take(sisa)) {
-      if (await File(f.path).length() > _maksByte) {
+      final isi = await f.readAsBytes();
+      if (isi.length > _maksByte) {
         terlaluBesar++;
       } else {
-        _foto.add(f);
+        _foto.add((berkas: f, isi: isi));
       }
     }
     if (!mounted) return;
@@ -273,9 +274,9 @@ class _FormBarangPageState extends ConsumerState<FormBarangPage> {
     final repo = ref.read(prelovedRepositoryProvider);
     try {
       if (_ubah) {
-        await repo.ubah(widget.barang!.id, data, [for (final f in _foto) f.path]);
+        await repo.ubah(widget.barang!.id, data, [for (final f in _foto) f.berkas]);
       } else {
-        await repo.pasang(data, [for (final f in _foto) f.path]);
+        await repo.pasang(data, [for (final f in _foto) f.berkas]);
       }
       if (!mounted) return;
       tampilPesan(context, _ubah ? 'Barang diperbarui.' : 'Barang berhasil dipasang.');
@@ -313,7 +314,7 @@ class _FormBarangPageState extends ConsumerState<FormBarangPage> {
                 Padding(
                   padding: const EdgeInsets.only(right: 8),
                   child: Stack(children: [
-                    ClipRRect(borderRadius: BorderRadius.circular(8), child: Image.file(File(_foto[i].path), width: 96, height: 96, fit: BoxFit.cover)),
+                    ClipRRect(borderRadius: BorderRadius.circular(8), child: Image.memory(_foto[i].isi, width: 96, height: 96, fit: BoxFit.cover)),
                     Positioned(
                       top: 0,
                       right: 0,

@@ -1,9 +1,11 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../core/api/api_client.dart';
 import '../../core/models/preloved.dart';
 import '../../core/providers.dart';
+import '../../core/repositories.dart' show berkasUnggah;
 
 class PrelovedRepository {
   PrelovedRepository(this._api);
@@ -23,12 +25,12 @@ class PrelovedRepository {
   Future<BarangPreloved> detail(int id) async => _barang(await _api.get('/preloved/$id'));
 
   /// Buat barang baru (multipart). [foto] = path file lokal, 1–5.
-  Future<BarangPreloved> pasang(Map<String, Object> data, List<String> foto) async =>
+  Future<BarangPreloved> pasang(Map<String, Object> data, List<XFile> foto) async =>
       _barang(await _api.post('/preloved', data: await _form(data, foto)));
 
   /// Ubah barang. Jika [foto] tidak kosong, semua foto lama diganti.
   /// Multipart dikirim lewat POST + _method=PATCH (PHP tidak membaca multipart PATCH).
-  Future<BarangPreloved> ubah(int id, Map<String, Object> data, List<String> foto) async {
+  Future<BarangPreloved> ubah(int id, Map<String, Object> data, List<XFile> foto) async {
     if (foto.isEmpty) return _barang(await _api.patch('/preloved/$id', data: data));
     return _barang(await _api.post('/preloved/$id', data: await _form({...data, '_method': 'PATCH'}, foto)));
   }
@@ -55,11 +57,11 @@ class PrelovedRepository {
   Future<void> tandaiDibaca(int percakapanId) => _api.post('/chat/$percakapanId/baca');
 
   // Disusun manual agar tiap file dikirim dengan key "foto[]" (Laravel → array)
-  static Future<FormData> _form(Map<String, Object> data, List<String> foto) async {
+  static Future<FormData> _form(Map<String, Object> data, List<XFile> foto) async {
     final form = FormData();
     data.forEach((k, v) => form.fields.add(MapEntry(k, '$v')));
-    for (final p in foto) {
-      form.files.add(MapEntry('foto[]', await MultipartFile.fromFile(p)));
+    for (final f in foto) {
+      form.files.add(MapEntry('foto[]', await berkasUnggah(f)));
     }
     return form;
   }

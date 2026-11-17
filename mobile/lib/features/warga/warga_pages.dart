@@ -412,7 +412,7 @@ class _MintaJemputPageState extends ConsumerState<MintaJemputPage> {
             lng: _titik!.longitude,
             perkiraanKg: double.tryParse(_kg.text.replaceAll(',', '.')),
             catatan: _catatan.text.trim(),
-            pathFoto: _foto?.path,
+            foto: _foto,
           );
       if (!mounted) return;
       tampilPesan(context, 'Permintaan jemput berhasil diajukan.');

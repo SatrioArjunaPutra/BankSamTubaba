@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\BankSampah;
 use App\Models\User;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
@@ -133,6 +134,70 @@ class SalinDataLokalTest extends TestCase
 
         $this->assertDatabaseCount('bank_sampah', 1);
         Storage::disk('public')->assertExists('preloved/a.jpg');
+    }
+
+    private function cadanganUji(): string
+    {
+        return $this->folderFoto.'-cadangan.json';
+    }
+
+    public function test_ganti_mencadangkan_lalu_mengganti_isi_tujuan_dan_token_lama(): void
+    {
+        Storage::fake('public');
+        $lama = BankSampah::factory()->create(['kode' => 'BS-LAMA-01']);
+        User::factory()->warga()->create(['email' => 'lama@contoh.test'])->createToken('hp');
+
+        $this->salin(['--ganti' => true, '--cadangan' => $this->cadanganUji()])
+            ->expectsConfirmation('HAPUS isi tujuan di atas, lalu ganti dengan data sumber?', 'yes')
+            ->assertSuccessful();
+
+        $this->assertDatabaseMissing('bank_sampah', ['id' => $lama->id, 'kode' => 'BS-LAMA-01']);
+        $this->assertDatabaseMissing('users', ['email' => 'lama@contoh.test']);
+        $this->assertDatabaseCount('bank_sampah', 1);
+        $this->assertDatabaseHas('users', ['email' => 'op@contoh.test']);
+        $this->assertDatabaseCount('personal_access_tokens', 0);
+        Storage::disk('public')->assertExists('preloved/a.jpg');
+
+        $cadangan = json_decode(File::get($this->cadanganUji()), true);
+        $this->assertSame('BS-LAMA-01', $cadangan['bank_sampah'][0]['kode']);
+        $this->assertSame('lama@contoh.test', $cadangan['users'][0]['email']);
+        File::delete($this->cadanganUji());
+    }
+
+    public function test_ganti_tanpa_persetujuan_tidak_menghapus_apa_pun(): void
+    {
+        Storage::fake('public');
+        BankSampah::factory()->create(['kode' => 'BS-LAMA-01']);
+
+        $this->salin(['--ganti' => true, '--cadangan' => $this->cadanganUji()])
+            ->expectsConfirmation('HAPUS isi tujuan di atas, lalu ganti dengan data sumber?', 'no')
+            ->assertFailed();
+
+        $this->assertDatabaseHas('bank_sampah', ['kode' => 'BS-LAMA-01']);
+        $this->assertFileDoesNotExist($this->cadanganUji());
+    }
+
+    public function test_ganti_yang_gagal_mengembalikan_isi_tujuan(): void
+    {
+        Storage::fake('public');
+        BankSampah::factory()->create(['kode' => 'BS-LAMA-01']);
+        // Baris sumber yang melanggar foreign key membuat penyalinan gagal di tengah jalan
+        $pdo = new PDO('sqlite:'.$this->sumber);
+        $pdo->exec('update users set bank_sampah_id = 999 where id = 9');
+        $pdo = null;
+
+        try {
+            $this->salin(['--ganti' => true, '--cadangan' => $this->cadanganUji()])
+                ->expectsConfirmation('HAPUS isi tujuan di atas, lalu ganti dengan data sumber?', 'yes')
+                ->run();
+            $this->fail('Penyalinan seharusnya gagal.');
+        } catch (QueryException) {
+            $this->assertDatabaseHas('bank_sampah', ['kode' => 'BS-LAMA-01']);
+            $this->assertDatabaseMissing('bank_sampah', ['kode' => 'BS-TUBABA-66']);
+            Storage::disk('public')->assertMissing('preloved/a.jpg');
+        } finally {
+            File::delete($this->cadanganUji());
+        }
     }
 
     public function test_sumber_yang_tidak_ada_ditolak(): void

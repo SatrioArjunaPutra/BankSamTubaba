@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 
 import 'api/api_client.dart';
 import 'models/bank_sampah.dart';
@@ -95,7 +96,7 @@ class WargaRepository {
     required double lng,
     double? perkiraanKg,
     String? catatan,
-    String? pathFoto,
+    XFile? foto,
   }) async {
     final form = FormData.fromMap({
       'bank_sampah_id': bankSampahId,
@@ -104,7 +105,7 @@ class WargaRepository {
       'lng': lng,
       'perkiraan_kg': ?perkiraanKg,
       if (catatan != null && catatan.isNotEmpty) 'catatan': catatan,
-      if (pathFoto != null) 'foto': await MultipartFile.fromFile(pathFoto),
+      if (foto != null) 'foto': await berkasUnggah(foto),
     });
     return _data(
       await _api.post('/warga/penjemputan', data: form),
@@ -367,3 +368,9 @@ final bankSampahRepositoryProvider = Provider(
 final bentorRepositoryProvider = Provider(
   (ref) => BentorRepository(ref.watch(apiClientProvider)),
 );
+
+/// Isi foto dibaca langsung, bukan lewat jalur berkas: di browser foto tidak punya jalur di disk.
+Future<MultipartFile> berkasUnggah(XFile foto) async {
+  final nama = foto.name.contains('.') ? foto.name : 'foto.jpg';
+  return MultipartFile.fromBytes(await foto.readAsBytes(), filename: nama);
+}

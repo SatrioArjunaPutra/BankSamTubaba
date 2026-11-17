@@ -1,11 +1,11 @@
 {
-    "name": "bank_sampah_tubaba",
-    "short_name": "bank_sampah_tubaba",
+    "name": "Bank Sampah Tubaba",
+    "short_name": "Bank Sampah",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "Aplikasi Bank Sampah Tubaba untuk warga, bank sampah, dan bentor.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
