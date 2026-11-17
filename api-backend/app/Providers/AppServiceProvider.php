@@ -47,6 +47,9 @@ class AppServiceProvider extends ServiceProvider
         // Kirim pesan chat: 30/menit per user
         RateLimiter::for('pesan', fn (Request $request) => Limit::perMinute(30)->by('pesan|'.$request->user()?->id));
 
+        // Simpan/hapus favorit: 60/menit per user, terpisah dari jatah chat
+        RateLimiter::for('favorit', fn (Request $request) => Limit::perMinute(60)->by('favorit|'.$request->user()?->id));
+
         // Batas spam per user (warga/operator)
         RateLimiter::for('jemput', fn (Request $request) => Limit::perHour(10)->by('jemput|'.$request->user()?->id));
         RateLimiter::for('preloved-pasang', fn (Request $request) => Limit::perDay(20)->by('preloved-pasang|'.$request->user()?->id));

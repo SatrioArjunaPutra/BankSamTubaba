@@ -2,11 +2,12 @@
 
 namespace App\Http\Resources;
 
+use App\Models\PrelovedItem;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * @mixin \App\Models\PrelovedItem
+ * @mixin PrelovedItem
  */
 class PrelovedResource extends JsonResource
 {
@@ -32,6 +33,8 @@ class PrelovedResource extends JsonResource
             ]),
             'milik_saya' => (int) $request->user()?->id === (int) $this->penjual_id,
             'jumlah_laporan' => $this->whenCounted('laporan'),
+            'jumlah_favorit' => $this->whenHas('jumlah_favorit', fn ($v) => (int) $v),
+            'difavoritkan' => $this->whenHas('difavoritkan', fn ($v) => (bool) $v),
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
         ];

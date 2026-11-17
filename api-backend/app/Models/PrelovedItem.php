@@ -7,6 +7,7 @@ use App\Enums\StatusPreloved;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Storage;
 
@@ -50,6 +51,24 @@ class PrelovedItem extends Model
     public function laporan(): HasMany
     {
         return $this->hasMany(LaporanPreloved::class);
+    }
+
+    public function favoritOleh(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'preloved_favorit', 'preloved_item_id', 'warga_id')->withTimestamps();
+    }
+
+    /** Menambahkan jumlah_favorit dan difavoritkan (oleh $warga) ke setiap barang. */
+    public function scopeDenganFavorit(Builder $query, User $warga): Builder
+    {
+        return $query->withCount('favoritOleh as jumlah_favorit')
+            ->withExists(['favoritOleh as difavoritkan' => fn ($q) => $q->whereKey($warga->id)]);
+    }
+
+    public function muatFavorit(User $warga): static
+    {
+        return $this->loadCount('favoritOleh as jumlah_favorit')
+            ->loadExists(['favoritOleh as difavoritkan' => fn ($q) => $q->whereKey($warga->id)]);
     }
 
     public function milik(User $user): bool

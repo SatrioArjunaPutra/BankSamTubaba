@@ -64,6 +64,9 @@ Route::prefix('v1')->group(function () {
         Route::middleware('role:warga')->group(function () {
             Route::get('/preloved', [Preloved\BarangController::class, 'index']);
             Route::get('/preloved/saya', [Preloved\BarangController::class, 'saya']);
+            Route::get('/preloved/favorit', [Preloved\FavoritController::class, 'index']);
+            Route::post('/preloved/{prelovedItem}/favorit', [Preloved\FavoritController::class, 'simpan'])->middleware('throttle:favorit');
+            Route::delete('/preloved/{prelovedItem}/favorit', [Preloved\FavoritController::class, 'hapus'])->middleware('throttle:favorit');
             Route::post('/preloved', [Preloved\BarangController::class, 'store'])->middleware('throttle:preloved-pasang');
             Route::get('/preloved/{prelovedItem}', [Preloved\BarangController::class, 'show'])->whereNumber('prelovedItem');
             Route::patch('/preloved/{prelovedItem}', [Preloved\BarangController::class, 'update']);

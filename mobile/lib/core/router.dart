@@ -13,6 +13,7 @@ import '../features/berita/berita_pages.dart';
 import '../features/bentor/bentor_pages.dart';
 import '../features/preloved/barang_pages.dart';
 import '../features/preloved/chat_pages.dart';
+import '../features/preloved/preloved_pages.dart';
 import '../features/warga/warga_pages.dart';
 import '../features/warga/warga_shell.dart';
 import '../features/warga/donasi_page.dart';
@@ -123,7 +124,19 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: 'preloved/saya',
-            builder: (_, _) => const BarangSayaPage(),
+            builder: (_, _) => const TokoSayaPage(),
+          ),
+          // Sebelum 'preloved/:id' agar "cari" dan "favorit" tidak dibaca sebagai id
+          GoRoute(
+            path: 'preloved/cari',
+            builder: (_, s) {
+              final saring = s.extra is Map ? (s.extra as Map).cast<String, String>() : const <String, String>{};
+              return CariBarangPage(kategori: saring['kategori'], urut: saring['urut']);
+            },
+          ),
+          GoRoute(
+            path: 'preloved/favorit',
+            builder: (_, _) => const FavoritPage(),
           ),
           GoRoute(
             path: 'preloved/:id',
@@ -137,6 +150,7 @@ final routerProvider = Provider<GoRouter>((ref) {
               ),
             ],
           ),
+          GoRoute(path: 'chat', builder: (_, _) => const DaftarChatPage()),
           GoRoute(
             path: 'chat/:id',
             builder: (_, s) => RuangChatPage(percakapan: s.extra as Percakapan),

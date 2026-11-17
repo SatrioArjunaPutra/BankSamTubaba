@@ -681,12 +681,17 @@ class MockBackend implements HttpClientAdapter {
     );
   }
 
+  // Pasangan (id barang, id warga) yang disimpan ke favorit
+  final _favorit = <(int, int)>{};
+
   Map<String, dynamic> _barangJson(Map<String, dynamic> b, int saya) {
     final penjual = _users[b['penjual_id']]!;
     return {
       ...b,
       'penjual': {'id': penjual['id'], 'name': penjual['name']},
       'milik_saya': b['penjual_id'] == saya,
+      'jumlah_favorit': _favorit.where((f) => f.$1 == b['id']).length,
+      'difavoritkan': _favorit.contains((b['id'] as int, saya)),
     };
   }
 
@@ -738,11 +743,25 @@ class MockBackend implements HttpClientAdapter {
             b['status'] == 'tersedia' &&
             '${b['judul']}'.toLowerCase().contains(kata) &&
             (q['kategori'] == null || b['kategori'] == q['kategori']) &&
-            (q['kecamatan'] == null || b['kecamatan'] == q['kecamatan']),
-      );
+            (q['kecamatan'] == null || b['kecamatan'] == q['kecamatan']) &&
+            (q['kondisi'] == null || b['kondisi'] == q['kondisi']),
+      ).toList().reversed.toList();
+      if (q['urut'] == 'termurah' || q['urut'] == 'termahal') {
+        daftar.sort((a, b) => (a['harga'] as num).compareTo(b['harga'] as num));
+      }
       return _halaman(
         'Daftar barang berhasil dimuat.',
-        daftar.toList().reversed.map((b) => _barangJson(b, saya)).toList(),
+        (q['urut'] == 'termahal' ? daftar.reversed : daftar).map((b) => _barangJson(b, saya)).toList(),
+        o,
+      );
+    }
+    if (m == 'GET' && p == '/preloved/favorit') {
+      return _halaman(
+        'Barang favorit berhasil dimuat.',
+        [
+          for (final f in _favorit.toList().reversed)
+            if (f.$2 == saya && _barang[f.$1] != null && _barang[f.$1]!['status'] != 'disembunyikan') _barangJson(_barang[f.$1]!, saya),
+        ],
         o,
       );
     }
@@ -793,6 +812,16 @@ class MockBackend implements HttpClientAdapter {
 
       if (aksi == null && m == 'GET') {
         return _sukses('Detail barang berhasil dimuat.', _barangJson(b, saya));
+      }
+      if (aksi == '/favorit') {
+        if (m == 'DELETE') {
+          _favorit.remove((b['id'] as int, saya));
+          return _sukses('Barang dihapus dari favorit.', _barangJson(b, saya));
+        }
+        if (milik) return _gagal(422, 'Anda tidak bisa memfavoritkan barang sendiri.');
+        if (b['status'] != 'tersedia') return _gagal(422, 'Barang ini sudah tidak tersedia.');
+        _favorit.add((b['id'] as int, saya));
+        return _sukses('Barang disimpan ke favorit.', _barangJson(b, saya));
       }
       if (aksi == null && (m == 'PATCH' || m == 'POST' || m == 'DELETE')) {
         if (!milik) {

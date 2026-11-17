@@ -13,12 +13,27 @@ class PrelovedRepository {
 
   BarangPreloved _barang(Map<String, dynamic> body) => BarangPreloved.dariJson((body['data'] as Map).cast());
 
-  Future<Halaman<BarangPreloved>> daftar({String? q, String? kategori, String? kecamatan, int halaman = 1}) => _api.daftar(
+  Future<Halaman<BarangPreloved>> daftar({
+    String? q,
+    String? kategori,
+    String? kecamatan,
+    String? kondisi,
+    String? urut,
+    int halaman = 1,
+  }) =>
+      _api.daftar(
         '/preloved',
         BarangPreloved.dariJson,
-        query: {'q': q, 'kategori': kategori, 'kecamatan': kecamatan},
+        query: {'q': q, 'kategori': kategori, 'kecamatan': kecamatan, 'kondisi': kondisi, 'urut': urut},
         halaman: halaman,
       );
+
+  Future<Halaman<BarangPreloved>> favoritSaya({int halaman = 1}) =>
+      _api.daftar('/preloved/favorit', BarangPreloved.dariJson, halaman: halaman);
+
+  /// Simpan ([simpan] = true) atau hapus barang dari favorit. Mengembalikan barang dengan jumlah terbaru.
+  Future<BarangPreloved> favorit(int id, {required bool simpan}) async =>
+      _barang(simpan ? await _api.post('/preloved/$id/favorit') : await _api.delete('/preloved/$id/favorit'));
 
   Future<Halaman<BarangPreloved>> milikSaya({int halaman = 1}) => _api.daftar('/preloved/saya', BarangPreloved.dariJson, halaman: halaman);
 

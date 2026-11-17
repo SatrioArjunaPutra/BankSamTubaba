@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Preloved;
 use App\Enums\StatusLaporan;
 use App\Enums\StatusPreloved;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Preloved\DaftarBarangRequest;
 use App\Http\Requests\Preloved\SimpanBarangRequest;
 use App\Http\Resources\PrelovedResource;
 use App\Models\LaporanPreloved;
@@ -22,16 +23,23 @@ use Throwable;
 class BarangController extends Controller
 {
     // Hanya barang tersedia; barang milik sendiri yang lain ada di /preloved/saya
-    public function index(Request $request)
+    public function index(DaftarBarangRequest $request)
     {
         $barang = PrelovedItem::with('penjual:id,name')
+            ->denganFavorit($request->user())
             ->where('status', StatusPreloved::Tersedia->value)
             ->when($request->filled('kategori'), fn ($q) => $q->where('kategori', $request->string('kategori')))
             ->when($request->filled('kecamatan'), fn ($q) => $q->where('kecamatan', $request->string('kecamatan')))
+            ->when($request->filled('kondisi'), fn ($q) => $q->where('kondisi', $request->string('kondisi')))
             ->when($request->filled('q'), function ($q) use ($request) {
                 $kata = '%'.mb_strtolower($request->string('q')).'%';
                 $q->where(fn ($q) => $q->whereRaw('lower(judul) like ?', [$kata])->orWhereRaw('lower(deskripsi) like ?', [$kata]));
             })
+            ->when(
+                $request->validated('urut') === 'termurah',
+                fn ($q) => $q->orderBy('harga'),
+                fn ($q) => $q->when($request->validated('urut') === 'termahal', fn ($q) => $q->orderByDesc('harga'))
+            )
             ->latest()
             ->latest('id')
             ->paginate(20)
@@ -43,6 +51,7 @@ class BarangController extends Controller
     public function saya(Request $request)
     {
         $barang = PrelovedItem::with('penjual:id,name')
+            ->denganFavorit($request->user())
             ->where('penjual_id', $request->user()->id)
             ->latest()
             ->latest('id')
@@ -52,12 +61,12 @@ class BarangController extends Controller
         return $this->daftar(PrelovedResource::collection($barang), 'Barang Anda berhasil dimuat.');
     }
 
-    public function show(PrelovedItem $prelovedItem)
+    public function show(Request $request, PrelovedItem $prelovedItem)
     {
         // Barang disembunyikan dijawab 404 agar keberadaannya tidak terlihat
         abort_unless(Gate::allows('lihat', $prelovedItem), 404);
 
-        return $this->sukses('Detail barang berhasil dimuat.', new PrelovedResource($prelovedItem->load('penjual:id,name')));
+        return $this->sukses('Detail barang berhasil dimuat.', new PrelovedResource($prelovedItem->load('penjual:id,name')->muatFavorit($request->user())));
     }
 
     public function store(SimpanBarangRequest $request)

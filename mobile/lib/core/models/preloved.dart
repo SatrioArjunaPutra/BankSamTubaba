@@ -30,6 +30,8 @@ class BarangPreloved {
     required this.milikSaya,
     this.penjual,
     this.createdAt,
+    this.jumlahFavorit = 0,
+    this.difavoritkan = false,
   });
 
   final int id;
@@ -46,8 +48,29 @@ class BarangPreloved {
   final bool milikSaya;
   final Kontak? penjual;
   final DateTime? createdAt;
+  final int jumlahFavorit;
+
+  /// Disimpan ke favorit oleh warga yang sedang login
+  final bool difavoritkan;
 
   bool get tersedia => status == 'tersedia';
+
+  BarangPreloved denganFavorit({required bool difavoritkan, required int jumlahFavorit}) => BarangPreloved(
+        id: id,
+        judul: judul,
+        deskripsi: deskripsi,
+        kategori: kategori,
+        kondisi: kondisi,
+        harga: harga,
+        kecamatan: kecamatan,
+        foto: foto,
+        status: status,
+        milikSaya: milikSaya,
+        penjual: penjual,
+        createdAt: createdAt,
+        jumlahFavorit: jumlahFavorit,
+        difavoritkan: difavoritkan,
+      );
 
   factory BarangPreloved.dariJson(Map<String, dynamic> json) => BarangPreloved(
         id: json['id'] as int,
@@ -62,8 +85,21 @@ class BarangPreloved {
         milikSaya: json['milik_saya'] == true,
         penjual: Kontak.dariJson(json['penjual']),
         createdAt: keTanggal(json['created_at']),
+        jumlahFavorit: (json['jumlah_favorit'] as num?)?.toInt() ?? 0,
+        difavoritkan: json['difavoritkan'] == true,
       );
 }
+
+/// Kondisi singkat untuk kartu barang
+const kondisiSingkat = {
+  'baru': 'Baru',
+  'seperti_baru': 'Seperti baru',
+  'bekas_baik': 'Bekas baik',
+  'bekas': 'Bekas',
+};
+
+/// Urutan daftar barang: nilai untuk API dan labelnya
+const urutanBarang = {'terbaru': 'Terbaru', 'termurah': 'Termurah', 'termahal': 'Termahal'};
 
 class PesanChat {
   const PesanChat({

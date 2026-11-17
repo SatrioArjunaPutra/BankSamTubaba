@@ -6,7 +6,6 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../core/api/api_exception.dart';
-import '../../core/daftar_berhalaman.dart';
 import '../../core/format.dart';
 import '../../core/models/preloved.dart';
 import '../../core/theme.dart';
@@ -35,6 +34,7 @@ class _DetailBarangPageState extends ConsumerState<DetailBarangPage> {
   int _foto = 0;
   bool _berubah = false;
   bool _sibuk = false;
+  BarangPreloved? _lokal;
 
   Future<void> _chat(BarangPreloved b) async {
     setState(() => _sibuk = true);
@@ -95,9 +95,32 @@ class _DetailBarangPageState extends ConsumerState<DetailBarangPage> {
     if (ok && mounted) context.pop(true);
   }
 
+  Future<void> _ubahFavorit(BarangPreloved b) async {
+    if (_sibuk) return;
+    final simpan = !b.difavoritkan;
+    setState(() {
+      _sibuk = true;
+      _lokal = b.denganFavorit(difavoritkan: simpan, jumlahFavorit: b.jumlahFavorit + (simpan ? 1 : -1));
+    });
+    try {
+      final baru = await ref.read(prelovedRepositoryProvider).favorit(b.id, simpan: simpan);
+      _berubah = true;
+      if (mounted) setState(() => _lokal = b.denganFavorit(difavoritkan: baru.difavoritkan, jumlahFavorit: baru.jumlahFavorit));
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _lokal = b);
+      tampilPesan(context, pesanDari(e), gagal: true);
+    } finally {
+      if (mounted) setState(() => _sibuk = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final detail = ref.watch(detailBarangProvider(widget.id));
+    // Favorit yang baru ditekan ditampilkan tanpa menunggu detail dimuat ulang
+    final dimuat = detail.value;
+    final barang = _lokal != null && dimuat != null && _lokal!.id == dimuat.id ? _lokal! : dimuat;
 
     return PopScope(
       canPop: false,
@@ -105,57 +128,120 @@ class _DetailBarangPageState extends ConsumerState<DetailBarangPage> {
         if (!didPop) context.pop(_berubah);
       },
       child: Scaffold(
-        appBar: AppBar(title: const Text('Detail barang')),
+        appBar: AppBar(
+          title: const Text('Detail barang'),
+          actions: [
+            if (barang != null && !barang.milikSaya)
+              IconButton(tooltip: 'Laporkan', onPressed: () => _lapor(barang), icon: const Icon(Icons.flag_outlined)),
+          ],
+        ),
+        bottomNavigationBar: barang == null || barang.milikSaya
+            ? null
+            : SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                  child: Row(children: [
+                    OutlinedButton.icon(
+                      onPressed: barang.tersedia || barang.difavoritkan ? () => _ubahFavorit(barang) : null,
+                      icon: Icon(barang.difavoritkan ? Icons.favorite : Icons.favorite_border, color: barang.difavoritkan ? Colors.red.shade600 : null),
+                      label: Text(barang.jumlahFavorit > 0 ? '${barang.jumlahFavorit}' : 'Simpan'),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: FilledButton.icon(
+                        onPressed: barang.tersedia && !_sibuk ? () => _chat(barang) : null,
+                        icon: const Icon(Icons.chat_bubble_outline),
+                        label: Text(barang.tersedia ? 'Chat Penjual' : 'Tidak tersedia'),
+                      ),
+                    ),
+                  ]),
+                ),
+              ),
         body: TampilanAsync(
           nilai: detail,
           onUlang: () => ref.invalidate(detailBarangProvider(widget.id)),
-          data: (b) => ListView(children: [
+          data: (dariServer) {
+            final b = barang ?? dariServer;
+            return ListView(children: [
             AspectRatio(
               aspectRatio: 1,
               child: Stack(children: [
                 PageView(
                   onPageChanged: (i) => setState(() => _foto = i),
-                  children: [for (final f in b.foto.isEmpty ? <String?>[null] : b.foto) FotoJaringan(url: f, fit: BoxFit.contain)],
+                  children: [for (final f in b.foto.isEmpty ? <String?>[null] : b.foto) FotoJaringan(url: f)],
                 ),
                 if (b.foto.length > 1)
                   Positioned(
-                    bottom: 8,
+                    bottom: 12,
                     left: 0,
                     right: 0,
                     child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                       for (var i = 0; i < b.foto.length; i++)
-                        Container(
-                          width: 8,
-                          height: 8,
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          width: i == _foto ? 18 : 7,
+                          height: 7,
                           margin: const EdgeInsets.all(3),
-                          decoration: BoxDecoration(shape: BoxShape.circle, color: i == _foto ? Colors.white : Colors.white54),
+                          decoration: BoxDecoration(borderRadius: BorderRadius.circular(4), color: i == _foto ? Colors.white : Colors.white60),
                         ),
                     ]),
+                  ),
+                if (b.foto.length > 1)
+                  Positioned(
+                    top: 12,
+                    right: 12,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(color: Colors.black54, borderRadius: BorderRadius.circular(12)),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        child: Text('${_foto + 1}/${b.foto.length}', style: const TextStyle(color: Colors.white, fontSize: 12)),
+                      ),
+                    ),
                   ),
               ]),
             ),
             Padding(
               padding: const EdgeInsets.all(16),
               child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                Text(b.judul, style: Theme.of(context).textTheme.titleLarge),
+                Text('${b.kategori} · ${kondisiBarang[b.kondisi] ?? b.kondisi}', style: const TextStyle(color: TemaAplikasi.redup)),
+                const SizedBox(height: 2),
+                Text(b.judul, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
                 const SizedBox(height: 4),
-                Text(rupiah(b.harga), style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 8),
-                Wrap(spacing: 8, runSpacing: 4, children: [
-                  Chip(label: Text(kondisiBarang[b.kondisi] ?? b.kondisi)),
-                  Chip(label: Text(b.kategori)),
-                  Chip(label: Text(b.kecamatan)),
-                  if (!b.tersedia) Chip(label: Text(b.status.toUpperCase())),
+                Text(rupiah(b.harga), style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
+                const SizedBox(height: 6),
+                Row(children: [
+                  const Icon(Icons.place_outlined, size: 16, color: TemaAplikasi.redup),
+                  const SizedBox(width: 4),
+                  Expanded(child: Text(b.kecamatan, style: const TextStyle(color: TemaAplikasi.redup))),
+                  if (b.jumlahFavorit > 0) ...[
+                    Icon(Icons.favorite, size: 16, color: Colors.red.shade600),
+                    const SizedBox(width: 4),
+                    Text('${b.jumlahFavorit} menyimpan', style: const TextStyle(color: TemaAplikasi.redup)),
+                  ],
                 ]),
-                const SizedBox(height: 8),
-                Text(b.deskripsi),
-                const SizedBox(height: 12),
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: const CircleAvatar(child: Icon(Icons.person)),
-                  title: Text(b.milikSaya ? 'Barang Anda' : (b.penjual?.name ?? '-')),
-                  subtitle: Text('Dipasang ${tanggal(b.createdAt)}'),
+                if (!b.tersedia) ...[
+                  const SizedBox(height: 8),
+                  Align(alignment: Alignment.centerLeft, child: LabelStatus(b.status == 'terjual' ? 'Terjual' : 'Disembunyikan', warna: Colors.red.shade700)),
+                ],
+                const SizedBox(height: 16),
+                Card(
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: TemaAplikasi.hijauLembut,
+                      child: Text(
+                        (b.penjual?.name.trim().isNotEmpty ?? false) ? b.penjual!.name.trim()[0].toUpperCase() : '?',
+                        style: const TextStyle(fontWeight: FontWeight.w800, color: TemaAplikasi.hijauPekat),
+                      ),
+                    ),
+                    title: Text(b.milikSaya ? 'Barang Anda' : (b.penjual?.name ?? '-'), style: const TextStyle(fontWeight: FontWeight.w700)),
+                    subtitle: Text('Dipasang ${tanggal(b.createdAt)}'),
+                  ),
                 ),
+                const SizedBox(height: 16),
+                const Text('Deskripsi', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+                const SizedBox(height: 6),
+                Text(b.deskripsi),
+                const SizedBox(height: 16),
                 Card(
                   color: Colors.amber.shade50,
                   child: const Padding(
@@ -181,15 +267,11 @@ class _DetailBarangPageState extends ConsumerState<DetailBarangPage> {
                   ),
                   const SizedBox(height: 8),
                   OutlinedButton.icon(onPressed: () => _hapus(b), icon: const Icon(Icons.delete_outline), label: const Text('Hapus')),
-                ] else ...[
-                  if (b.tersedia)
-                    FilledButton.icon(onPressed: _sibuk ? null : () => _chat(b), icon: const Icon(Icons.chat), label: const Text('Chat Penjual')),
-                  const SizedBox(height: 8),
-                  TextButton.icon(onPressed: () => _lapor(b), icon: const Icon(Icons.flag_outlined), label: const Text('Laporkan')),
                 ],
               ]),
             ),
-          ]),
+          ]);
+          },
         ),
       ),
     );
@@ -397,45 +479,3 @@ class _FormBarangPageState extends ConsumerState<FormBarangPage> {
       );
 }
 
-class BarangSayaPage extends ConsumerStatefulWidget {
-  const BarangSayaPage({super.key});
-
-  @override
-  ConsumerState<BarangSayaPage> createState() => _BarangSayaPageState();
-}
-
-class _BarangSayaPageState extends ConsumerState<BarangSayaPage> {
-  final _daftar = GlobalKey<DaftarBerhalamanState<BarangPreloved>>();
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Barang saya')),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () async {
-          if (await context.push<bool>('/warga/preloved/jual') == true) _daftar.currentState?.segarkan();
-        },
-        icon: const Icon(Icons.add),
-        label: const Text('Jual barang'),
-      ),
-      body: DaftarBerhalaman<BarangPreloved>(
-        key: _daftar,
-        muat: (hal) => ref.read(prelovedRepositoryProvider).milikSaya(halaman: hal),
-        kosong: 'Anda belum menjual barang.',
-        adaFab: true,
-        itemBuilder: (context, b, segarkan) => Card(
-          clipBehavior: Clip.antiAlias,
-          child: ListTile(
-            leading: SizedBox(width: 56, height: 56, child: FotoJaringan(url: b.foto.firstOrNull)),
-            title: Text(b.judul, maxLines: 1, overflow: TextOverflow.ellipsis),
-            subtitle: Text(rupiah(b.harga)),
-            trailing: LabelStatus(b.status, warna: b.tersedia ? TemaAplikasi.hijau : (b.status == 'terjual' ? Colors.grey.shade700 : Colors.red.shade700)),
-            onTap: () async {
-              if (await context.push<bool>('/warga/preloved/${b.id}') == true) segarkan();
-            },
-          ),
-        ),
-      ),
-    );
-  }
-}
