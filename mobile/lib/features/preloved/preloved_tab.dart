@@ -4,19 +4,22 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/api/api_client.dart';
 import '../../core/format.dart';
+import '../../core/gerak.dart';
+import '../../core/komponen_ui.dart' show corakTapis;
 import '../../core/models/preloved.dart';
 import '../../core/theme.dart';
 import '../../core/widgets.dart';
 import 'preloved_repository.dart';
 
-const ikonKategori = <String, IconData>{
-  'Pakaian': Icons.checkroom_outlined,
-  'Elektronik': Icons.devices_other_outlined,
-  'Perabot': Icons.chair_outlined,
-  'Buku': Icons.menu_book_outlined,
-  'Mainan': Icons.toys_outlined,
-  'Kerajinan Daur Ulang': Icons.recycling_outlined,
-  'Lainnya': Icons.category_outlined,
+/// Ikon dan warna lembut tiap kategori, dipakai di deret kategori.
+const gayaKategori = <String, ({IconData ikon, Color latar, Color warna})>{
+  'Pakaian': (ikon: Icons.checkroom_outlined, latar: Color(0xFFFCE7F3), warna: Color(0xFFBE185D)),
+  'Elektronik': (ikon: Icons.devices_other_outlined, latar: Color(0xFFE0F2FE), warna: Color(0xFF0369A1)),
+  'Perabot': (ikon: Icons.chair_outlined, latar: Color(0xFFFEF3C7), warna: Color(0xFFB45309)),
+  'Buku': (ikon: Icons.menu_book_outlined, latar: Color(0xFFEDE9FE), warna: Color(0xFF6D28D9)),
+  'Mainan': (ikon: Icons.toys_outlined, latar: Color(0xFFFFEDD5), warna: Color(0xFFC2410C)),
+  'Kerajinan Daur Ulang': (ikon: Icons.recycling_outlined, latar: Color(0xFFDCFCE7), warna: Color(0xFF15803D)),
+  'Lainnya': (ikon: Icons.category_outlined, latar: Color(0xFFF1F5F9), warna: Color(0xFF475569)),
 };
 
 final _barangHematProvider = FutureProvider.autoDispose<List<BarangPreloved>>(
@@ -27,7 +30,7 @@ final _favoritRingkasProvider = FutureProvider.autoDispose<List<BarangPreloved>>
   (ref) async => (await ref.watch(prelovedRepositoryProvider).favoritSaya()).items.take(10).toList(),
 );
 
-/// Tab Preloved: cari, kategori, deret favorit dan harga hemat, lalu semua barang terbaru.
+/// Tab Preloved: header bermotif tapis, kategori, deret favorit dan harga hemat, lalu semua barang terbaru.
 class PrelovedTab extends ConsumerStatefulWidget {
   const PrelovedTab({super.key});
 
@@ -65,32 +68,24 @@ class PrelovedTabState extends ConsumerState<PrelovedTab> {
       kosong: 'Belum ada barang. Jadilah yang pertama menjual!',
       header: [
         SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 8, 12, 4),
-            child: Row(children: [
-              Expanded(child: KotakCari(onTap: () => _buka('/warga/preloved/cari'))),
-              IconButton(
-                tooltip: 'Favorit saya',
-                onPressed: () => _buka('/warga/preloved/favorit'),
-                icon: const Icon(Icons.favorite_border),
-              ),
-              IconButton(
-                tooltip: 'Toko saya',
-                onPressed: () => _buka('/warga/preloved/saya'),
-                icon: const Icon(Icons.storefront_outlined),
-              ),
-            ]),
+          child: _HeaderPreloved(
+            onCari: () => _buka('/warga/preloved/cari'),
+            onFavorit: () => _buka('/warga/preloved/favorit'),
+            onToko: () => _buka('/warga/preloved/saya'),
           ),
         ),
         SliverToBoxAdapter(
           child: SizedBox(
-            height: 96,
+            height: 104,
             child: ListView(
               scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              padding: const EdgeInsets.fromLTRB(14, 14, 14, 4),
               children: [
-                for (final k in kategoriPreloved)
-                  _TombolKategori(kategori: k, onTap: () => _buka('/warga/preloved/cari', extra: {'kategori': k})),
+                for (final (i, k) in kategoriPreloved.indexed)
+                  MunculBertahap(
+                    urutan: i,
+                    child: _TombolKategori(kategori: k, onTap: () => _buka('/warga/preloved/cari', extra: {'kategori': k})),
+                  ),
               ],
             ),
           ),
@@ -99,6 +94,8 @@ class PrelovedTabState extends ConsumerState<PrelovedTab> {
           SliverToBoxAdapter(
             child: DeretBarang(
               judul: 'Favoritmu',
+              ikon: Icons.favorite,
+              warnaIkon: Colors.red.shade600,
               barang: favorit.value!,
               onLihatSemua: () => _buka('/warga/preloved/favorit'),
               onKembali: segarkan,
@@ -108,23 +105,87 @@ class PrelovedTabState extends ConsumerState<PrelovedTab> {
           SliverToBoxAdapter(
             child: DeretBarang(
               judul: 'Harga hemat',
+              ikon: Icons.local_offer_outlined,
+              warnaIkon: TemaAplikasi.hijau,
               barang: hemat.value!,
               onLihatSemua: () => _buka('/warga/preloved/cari', extra: {'urut': 'termurah'}),
               onKembali: segarkan,
             ),
           ),
-        const SliverToBoxAdapter(child: JudulDeret('Barang terbaru')),
+        SliverToBoxAdapter(child: _AjakanJual(onTap: () => _buka('/warga/preloved/jual'))),
+        const SliverToBoxAdapter(child: JudulDeret('Barang terbaru', ikon: Icons.auto_awesome_outlined)),
       ],
     );
   }
 }
 
-/// Kotak cari yang membuka halaman cari.
+class _HeaderPreloved extends StatelessWidget {
+  const _HeaderPreloved({required this.onCari, required this.onFavorit, required this.onToko});
+
+  final VoidCallback onCari;
+  final VoidCallback onFavorit;
+  final VoidCallback onToko;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: DecoratedBox(
+            decoration: const BoxDecoration(color: TemaAplikasi.hijauPekat, image: corakTapis),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(18, 18, 12, 18),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Row(children: [
+                  const Expanded(
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text('Preloved Warga', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800)),
+                      SizedBox(height: 2),
+                      Text('Barang bekas layak pakai dari warga sekitar', style: TextStyle(color: Colors.white70, fontSize: 13)),
+                    ]),
+                  ),
+                  _TombolBulat(ikon: Icons.favorite_border, tooltip: 'Favorit saya', onTap: onFavorit),
+                  const SizedBox(width: 6),
+                  _TombolBulat(ikon: Icons.storefront_outlined, tooltip: 'Toko saya', onTap: onToko),
+                ]),
+                const SizedBox(height: 14),
+                Padding(padding: const EdgeInsets.only(right: 6), child: KotakCari(onTap: onCari, terang: true)),
+              ]),
+            ),
+          ),
+        ),
+      );
+}
+
+class _TombolBulat extends StatelessWidget {
+  const _TombolBulat({required this.ikon, required this.tooltip, required this.onTap});
+
+  final IconData ikon;
+  final String tooltip;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Tooltip(
+        message: tooltip,
+        child: Material(
+          color: Colors.white.withValues(alpha: .14),
+          shape: const CircleBorder(),
+          child: InkWell(
+            customBorder: const CircleBorder(),
+            onTap: onTap,
+            child: Padding(padding: const EdgeInsets.all(10), child: Icon(ikon, color: Colors.white, size: 22)),
+          ),
+        ),
+      );
+}
+
+/// Kotak cari yang membuka halaman cari. [terang] untuk dipasang di atas latar gelap.
 class KotakCari extends StatelessWidget {
-  const KotakCari({super.key, required this.onTap, this.teks = 'Cari barang preloved…'});
+  const KotakCari({super.key, required this.onTap, this.teks = 'Cari barang preloved…', this.terang = false});
 
   final VoidCallback onTap;
   final String teks;
+  final bool terang;
 
   @override
   Widget build(BuildContext context) => Semantics(
@@ -132,17 +193,18 @@ class KotakCari extends StatelessWidget {
         label: 'Cari barang',
         excludeSemantics: true,
         child: Material(
-          color: TemaAplikasi.hijauLembut,
-          borderRadius: BorderRadius.circular(24),
+          color: terang ? Colors.white : TemaAplikasi.hijauLembut,
+          borderRadius: BorderRadius.circular(16),
           child: InkWell(
-            borderRadius: BorderRadius.circular(24),
+            borderRadius: BorderRadius.circular(16),
             onTap: onTap,
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
               child: Row(children: [
-                const Icon(Icons.search, color: TemaAplikasi.redup),
+                const Icon(Icons.search, color: TemaAplikasi.hijau),
                 const SizedBox(width: 10),
                 Expanded(child: Text(teks, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: TemaAplikasi.redup))),
+                const Icon(Icons.tune, color: TemaAplikasi.redup, size: 20),
               ]),
             ),
           ),
@@ -157,40 +219,85 @@ class _TombolKategori extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => SizedBox(
-        width: 76,
+  Widget build(BuildContext context) {
+    final gaya = gayaKategori[kategori] ?? gayaKategori['Lainnya']!;
+    return SizedBox(
+      width: 78,
+      child: TekanSkala(
         child: InkWell(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(14),
           onTap: onTap,
           child: Column(children: [
-            Container(
-              width: 46,
-              height: 46,
-              decoration: BoxDecoration(color: TemaAplikasi.hijauLembut, borderRadius: BorderRadius.circular(14)),
-              child: Icon(ikonKategori[kategori] ?? Icons.category_outlined, color: TemaAplikasi.hijauPekat),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              kategori == 'Kerajinan Daur Ulang' ? 'Daur ulang' : kategori,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 12),
-            ),
+          Container(
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(color: gaya.latar, borderRadius: BorderRadius.circular(18)),
+            child: Icon(gaya.ikon, color: gaya.warna, size: 26),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            kategori == 'Kerajinan Daur Ulang' ? 'Daur ulang' : kategori,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+          ),
           ]),
+        ),
+      ),
+    );
+  }
+}
+
+class _AjakanJual extends StatelessWidget {
+  const _AjakanJual({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
+        child: Material(
+          color: TemaAplikasi.hijauLembut,
+          borderRadius: BorderRadius.circular(18),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(18),
+            onTap: onTap,
+            child: const Padding(
+              padding: EdgeInsets.all(14),
+              child: Row(children: [
+                CircleAvatar(
+                  radius: 22,
+                  backgroundColor: TemaAplikasi.hijau,
+                  child: Icon(Icons.add_a_photo_outlined, color: Colors.white, size: 20),
+                ),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text('Punya barang tak terpakai?', style: TextStyle(fontWeight: FontWeight.w800)),
+                    Text('Foto, beri harga, dan tunggu pembeli menghubungimu.', style: TextStyle(fontSize: 12, color: TemaAplikasi.redup)),
+                  ]),
+                ),
+                Icon(Icons.chevron_right, color: TemaAplikasi.hijau),
+              ]),
+            ),
+          ),
         ),
       );
 }
 
 class JudulDeret extends StatelessWidget {
-  const JudulDeret(this.judul, {super.key, this.onLihatSemua});
+  const JudulDeret(this.judul, {super.key, this.onLihatSemua, this.ikon, this.warnaIkon = TemaAplikasi.hijau});
 
   final String judul;
   final VoidCallback? onLihatSemua;
+  final IconData? ikon;
+  final Color warnaIkon;
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.fromLTRB(20, 14, 12, 4),
+        padding: const EdgeInsets.fromLTRB(20, 18, 12, 6),
         child: Row(children: [
+          if (ikon != null) ...[Icon(ikon, size: 20, color: warnaIkon), const SizedBox(width: 6)],
           Expanded(child: Text(judul, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800))),
           if (onLihatSemua != null) TextButton(onPressed: onLihatSemua, child: const Text('Lihat semua')),
         ]),
@@ -199,24 +306,34 @@ class JudulDeret extends StatelessWidget {
 
 /// Deretan barang yang digeser ke samping, seperti "Your likes" di aplikasi preloved.
 class DeretBarang extends StatelessWidget {
-  const DeretBarang({super.key, required this.judul, required this.barang, this.onLihatSemua, this.onKembali});
+  const DeretBarang({
+    super.key,
+    required this.judul,
+    required this.barang,
+    this.ikon,
+    this.warnaIkon = TemaAplikasi.hijau,
+    this.onLihatSemua,
+    this.onKembali,
+  });
 
   final String judul;
   final List<BarangPreloved> barang;
+  final IconData? ikon;
+  final Color warnaIkon;
   final VoidCallback? onLihatSemua;
   final VoidCallback? onKembali;
 
   @override
   Widget build(BuildContext context) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        JudulDeret(judul, onLihatSemua: onLihatSemua),
+        JudulDeret(judul, ikon: ikon, warnaIkon: warnaIkon, onLihatSemua: onLihatSemua),
         SizedBox(
-          height: 268,
+          height: 300,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 20),
+            padding: const EdgeInsets.fromLTRB(20, 2, 20, 8),
             itemCount: barang.length,
             separatorBuilder: (_, _) => const SizedBox(width: 12),
-            itemBuilder: (_, i) => SizedBox(width: 156, child: KartuBarang(barang: barang[i], onKembali: onKembali)),
+            itemBuilder: (_, i) => SizedBox(width: 160, child: KartuBarang(barang: barang[i], onKembali: onKembali)),
           ),
         ),
       ]);
@@ -231,6 +348,7 @@ class GridBarang extends StatefulWidget {
     this.kosong = 'Belum ada barang.',
     this.adaFab = false,
     this.onSegarkan,
+    this.onTotal,
   });
 
   final Future<Halaman<BarangPreloved>> Function(int halaman) muat;
@@ -238,6 +356,9 @@ class GridBarang extends StatefulWidget {
   final String kosong;
   final bool adaFab;
   final Future<void> Function()? onSegarkan;
+
+  /// Dipanggil dengan jumlah seluruh barang setiap halaman pertama dimuat
+  final ValueChanged<int>? onTotal;
 
   @override
   State<GridBarang> createState() => GridBarangState();
@@ -289,6 +410,7 @@ class GridBarangState extends State<GridBarang> {
     try {
       final h = await widget.muat(_halaman + 1);
       if (!mounted || generasi != _generasi) return;
+      if (h.halaman == 1) widget.onTotal?.call(h.total);
       setState(() {
         _items.addAll(h.items);
         _halaman = h.halaman;
@@ -321,14 +443,14 @@ class GridBarangState extends State<GridBarang> {
               sliver: SliverGrid.builder(
                 gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
                   maxCrossAxisExtent: 220,
-                  mainAxisSpacing: 18,
+                  mainAxisSpacing: 14,
                   crossAxisSpacing: 12,
-                  childAspectRatio: 0.6,
+                  childAspectRatio: 0.52,
                 ),
-                itemCount: _items.length + (_memuat ? 2 : 0),
+                itemCount: _items.length + (_memuat ? (_items.isEmpty ? 4 : 2) : 0),
                 itemBuilder: (context, i) => i < _items.length
-                    ? KartuBarang(barang: _items[i], onKembali: segarkan)
-                    : const _KartuMemuat(),
+                    ? MunculBertahap(urutan: i % 6, child: KartuBarang(barang: _items[i], onKembali: segarkan))
+                    : const KartuMemuat(),
               ),
             ),
         ],
@@ -337,17 +459,45 @@ class GridBarangState extends State<GridBarang> {
   }
 }
 
-class _KartuMemuat extends StatelessWidget {
-  const _KartuMemuat();
+/// Kerangka kartu yang berkedip pelan selama barang dimuat.
+class KartuMemuat extends StatefulWidget {
+  const KartuMemuat({super.key});
 
   @override
-  Widget build(BuildContext context) => DecoratedBox(
-        decoration: BoxDecoration(color: TemaAplikasi.hijauLembut, borderRadius: BorderRadius.circular(16)),
-        child: const Center(child: CircularProgressIndicator()),
+  State<KartuMemuat> createState() => _KartuMemuatState();
+}
+
+class _KartuMemuatState extends State<KartuMemuat> with SingleTickerProviderStateMixin {
+  late final _kedip = AnimationController(vsync: this, duration: const Duration(milliseconds: 900))..repeat(reverse: true);
+
+  @override
+  void dispose() {
+    _kedip.dispose();
+    super.dispose();
+  }
+
+  Widget _garis(double lebar) => Container(
+        height: 12,
+        width: lebar,
+        margin: const EdgeInsets.only(top: 8),
+        decoration: BoxDecoration(color: TemaAplikasi.garis, borderRadius: BorderRadius.circular(6)),
+      );
+
+  @override
+  Widget build(BuildContext context) => FadeTransition(
+        opacity: Tween(begin: .45, end: 1.0).animate(_kedip),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Expanded(
+            child: Container(decoration: BoxDecoration(color: TemaAplikasi.hijauLembut, borderRadius: BorderRadius.circular(18))),
+          ),
+          _garis(80),
+          _garis(120),
+          _garis(64),
+        ]),
       );
 }
 
-/// Kartu barang bergaya aplikasi preloved: foto besar, tombol favorit, lalu ringkasan.
+/// Kartu barang bergaya aplikasi preloved: foto besar, kondisi, tombol favorit, lalu ringkasan.
 class KartuBarang extends ConsumerStatefulWidget {
   const KartuBarang({super.key, required this.barang, this.onKembali});
 
@@ -392,63 +542,85 @@ class _KartuBarangState extends ConsumerState<KartuBarang> {
   @override
   Widget build(BuildContext context) {
     final b = _b;
-    return InkWell(
-      borderRadius: BorderRadius.circular(16),
-      onTap: () async {
-        final berubah = await context.push<bool>('/warga/preloved/${b.id}');
-        if (berubah == true) widget.onKembali?.call();
-      },
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Expanded(
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: Stack(fit: StackFit.expand, children: [
-              FotoJaringan(url: b.foto.firstOrNull),
-              if (!b.tersedia)
-                ColoredBox(
-                  color: Colors.black45,
-                  child: Center(
-                    child: LabelStatus(b.status == 'terjual' ? 'Terjual' : 'Disembunyikan', warna: Colors.white),
+    return TekanSkala(
+      child: Material(
+        color: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: Color(0xFFD7EEDF), width: 1.5),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: () async {
+            final berubah = await context.push<bool>('/warga/preloved/${b.id}');
+            if (berubah == true) widget.onKembali?.call();
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(8),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Expanded(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(14),
+                  child: Stack(fit: StackFit.expand, children: [
+                    FotoJaringan(url: b.foto.firstOrNull),
+                    if (!b.tersedia)
+                      ColoredBox(
+                        color: Colors.black45,
+                        child: Center(child: LabelStatus(b.status == 'terjual' ? 'Terjual' : 'Disembunyikan', warna: Colors.white)),
+                      ),
+                    if (b.foto.length > 1)
+                      Positioned(top: 6, left: 6, child: _Lencana(ikon: Icons.photo_library_outlined, teks: '${b.foto.length}')),
+                    Positioned(right: 6, bottom: 6, child: _Lencana(teks: kondisiSingkat[b.kondisi] ?? b.kondisi)),
+                  ]),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(4, 10, 4, 0),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(
+                    b.kategori.toUpperCase(),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w800, letterSpacing: .4, color: TemaAplikasi.hijau),
                   ),
-                ),
-              if (b.foto.length > 1)
-                Positioned(
-                  top: 8,
-                  left: 8,
-                  child: _Lencana(ikon: Icons.photo_library_outlined, teks: '${b.foto.length}'),
-                ),
-              Positioned(
-                right: 8,
-                bottom: 8,
-                child: b.milikSaya
-                    ? (b.jumlahFavorit > 0 ? _Lencana(ikon: Icons.favorite, teks: '${b.jumlahFavorit}', merah: true) : const SizedBox.shrink())
-                    : TombolFavorit(barang: b, onTap: b.tersedia || b.difavoritkan ? _ubahFavorit : null),
+                  const SizedBox(height: 2),
+                  Text(b.judul, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w800)),
+                  Row(children: [
+                    const Icon(Icons.place_outlined, size: 12, color: TemaAplikasi.redup),
+                    const SizedBox(width: 2),
+                    Expanded(
+                      child: Text(b.kecamatan, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11.5, color: TemaAplikasi.redup)),
+                    ),
+                  ]),
+                  const Divider(height: 14, color: Color(0xFFE6F2EA)),
+                  Row(children: [
+                    Expanded(
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Text(rupiah(b.harga), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: TemaAplikasi.hijau)),
+                        ),
+                        Text(
+                          b.jumlahFavorit > 0 ? '${b.jumlahFavorit} menyimpan' : 'COD',
+                          style: const TextStyle(fontSize: 11, color: TemaAplikasi.redup),
+                        ),
+                      ]),
+                    ),
+                    if (!b.milikSaya) TombolFavorit(barang: b, onTap: b.tersedia || b.difavoritkan ? _ubahFavorit : null),
+                  ]),
+                ]),
               ),
             ]),
           ),
         ),
-        const SizedBox(height: 8),
-        Text(
-          '${b.kategori} · ${kondisiSingkat[b.kondisi] ?? b.kondisi}',
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(fontSize: 12, color: TemaAplikasi.redup),
-        ),
-        Text(b.judul, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600)),
-        Text(rupiah(b.harga), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: TemaAplikasi.teks)),
-        Row(children: [
-          const Icon(Icons.place_outlined, size: 13, color: TemaAplikasi.redup),
-          const SizedBox(width: 2),
-          Expanded(
-            child: Text(b.kecamatan, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, color: TemaAplikasi.redup)),
-          ),
-        ]),
-      ]),
+      ),
     );
   }
 }
 
-/// Tombol hati putih berisi jumlah favorit. [onTap] null berarti tidak bisa ditekan.
+/// Tombol hati kotak hijau seperti tombol tambah di katalog, membesar sesaat saat ditekan.
+/// [onTap] null berarti tidak bisa ditekan.
 class TombolFavorit extends StatelessWidget {
   const TombolFavorit({super.key, required this.barang, this.onTap});
 
@@ -456,54 +628,52 @@ class TombolFavorit extends StatelessWidget {
   final VoidCallback? onTap;
 
   @override
-  Widget build(BuildContext context) => Semantics(
-        // Simpul sendiri agar tidak tergabung ke kartu yang juga bisa diketuk
-        container: true,
-        button: true,
-        label: barang.difavoritkan ? 'Hapus dari favorit' : 'Simpan ke favorit',
-        excludeSemantics: true,
-        child: Material(
-          color: Colors.white,
-          shape: const StadiumBorder(),
-          elevation: 1,
-          child: InkWell(
-            customBorder: const StadiumBorder(),
-            onTap: onTap,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-              child: Row(mainAxisSize: MainAxisSize.min, children: [
-                Icon(
-                  barang.difavoritkan ? Icons.favorite : Icons.favorite_border,
-                  size: 18,
-                  color: barang.difavoritkan ? Colors.red.shade600 : TemaAplikasi.teks,
-                ),
-                if (barang.jumlahFavorit > 0) ...[
-                  const SizedBox(width: 4),
-                  Text('${barang.jumlahFavorit}', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
-                ],
-              ]),
+  Widget build(BuildContext context) {
+    final aktif = barang.difavoritkan;
+    return Semantics(
+      // Simpul sendiri agar tidak tergabung ke kartu yang juga bisa diketuk
+      container: true,
+      button: true,
+      label: aktif ? 'Hapus dari favorit' : 'Simpan ke favorit',
+      excludeSemantics: true,
+      child: Material(
+        color: aktif ? const Color(0xFFFDE8EC) : TemaAplikasi.hijau,
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: onTap,
+          child: SizedBox(
+            width: 38,
+            height: 38,
+            child: TweenAnimationBuilder<double>(
+              key: ValueKey(aktif),
+              tween: Tween(begin: aktif ? 1.5 : 1, end: 1),
+              duration: const Duration(milliseconds: 320),
+              curve: Curves.easeOutBack,
+              builder: (_, skala, ikon) => Transform.scale(scale: skala, child: ikon),
+              child: Icon(aktif ? Icons.favorite : Icons.favorite_border, size: 20, color: aktif ? Colors.red.shade600 : Colors.white),
             ),
           ),
         ),
-      );
+      ),
+    );
+  }
 }
 
 class _Lencana extends StatelessWidget {
-  const _Lencana({required this.ikon, required this.teks, this.merah = false});
+  const _Lencana({required this.teks, this.ikon});
 
-  final IconData ikon;
   final String teks;
-  final bool merah;
+  final IconData? ikon;
 
   @override
   Widget build(BuildContext context) => DecoratedBox(
-        decoration: BoxDecoration(color: Colors.white.withValues(alpha: .95), borderRadius: BorderRadius.circular(20)),
+        decoration: BoxDecoration(color: Colors.white.withValues(alpha: .94), borderRadius: BorderRadius.circular(20)),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           child: Row(mainAxisSize: MainAxisSize.min, children: [
-            Icon(ikon, size: 14, color: merah ? Colors.red.shade600 : TemaAplikasi.teks),
-            const SizedBox(width: 3),
-            Text(teks, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+            if (ikon != null) ...[Icon(ikon, size: 13, color: TemaAplikasi.teks), const SizedBox(width: 3)],
+            Text(teks, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: TemaAplikasi.hijauPekat)),
           ]),
         ),
       );
@@ -518,9 +688,9 @@ class FotoJaringan extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final latar = Container(
-      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+      color: TemaAplikasi.hijauLembut,
       alignment: Alignment.center,
-      child: const Icon(Icons.image_not_supported_outlined),
+      child: const Icon(Icons.image_outlined, color: TemaAplikasi.redup),
     );
     if (url == null) return latar;
     return Image.network(
@@ -528,6 +698,9 @@ class FotoJaringan extends StatelessWidget {
       fit: fit,
       width: double.infinity,
       errorBuilder: (_, _, _) => latar,
+      frameBuilder: (_, gambar, bingkai, sinkron) => sinkron
+          ? gambar
+          : AnimatedOpacity(opacity: bingkai == null ? 0 : 1, duration: const Duration(milliseconds: 300), child: gambar),
       loadingBuilder: (c, child, progres) => progres == null ? child : latar,
     );
   }

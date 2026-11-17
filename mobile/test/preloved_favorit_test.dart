@@ -72,7 +72,7 @@ void main() {
     await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
     await tester.pumpAndSettle();
     expect(find.byIcon(Icons.favorite), findsOneWidget);
-    expect(find.text('1'), findsOneWidget);
+    expect(find.text('1 menyimpan'), findsOneWidget);
 
     await _pasang(tester, repo, const FavoritPage());
     await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));

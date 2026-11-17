@@ -6,6 +6,7 @@ use App\Models\BankSampah;
 use App\Models\User;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Hash;
@@ -28,12 +29,16 @@ class SalinDataLokalTest extends TestCase
     {
         parent::setUp();
 
-        // Skema sumber sama dengan database uji, lalu diisi dua baris contoh
+        // Sumber selalu SQLite yang dimigrasi sendiri, jadi test ini juga berjalan saat database uji PostgreSQL
         $this->sumber = tempnam(sys_get_temp_dir(), 'salin').'.sqlite';
+        touch($this->sumber);
+        config(['database.connections.sumber_uji' => [
+            'driver' => 'sqlite', 'database' => $this->sumber, 'prefix' => '', 'foreign_key_constraints' => false,
+        ]]);
+        Artisan::call('migrate', ['--database' => 'sumber_uji', '--force' => true]);
+        DB::purge('sumber_uji');
+
         $pdo = new PDO('sqlite:'.$this->sumber);
-        foreach (DB::select("select sql from sqlite_master where sql is not null and name not like 'sqlite_%'") as $baris) {
-            $pdo->exec($baris->sql);
-        }
         $waktu = '2026-11-01 08:00:00';
         $pdo->prepare('insert into bank_sampah (id, kode, nama, tiyuh, kecamatan, alamat, lat, lng, koordinat_estimasi, is_aktif, created_at, updated_at) values (7, ?, ?, ?, ?, ?, ?, ?, 0, 1, ?, ?)')
             ->execute(['BS-TUBABA-66', 'Randu indah', 'Cahyou randu', 'Pagar Dewa', 'Cahyou randu', -4.3299, 105.228, $waktu, $waktu]);
