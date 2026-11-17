@@ -13,6 +13,12 @@ class TemaAplikasi {
   static const redup = Color(0xFF6B7770);
   static const garis = Color(0xFFE3E8E4);
 
+  // Aksen hijau dari palet web DLH
+  static const hijauSedang = Color(0xFF4AB778);
+  static const hijauPucat = Color(0xFFB7E4C7);
+  static const garisHijau = Color(0xFFD5EBDC);
+  static const kuningTua = Color(0xFFB45309);
+
   static ThemeData terang() {
     final skema = ColorScheme.fromSeed(seedColor: hijau).copyWith(
       primary: hijau,

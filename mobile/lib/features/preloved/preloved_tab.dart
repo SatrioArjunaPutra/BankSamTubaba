@@ -5,21 +5,21 @@ import 'package:go_router/go_router.dart';
 import '../../core/api/api_client.dart';
 import '../../core/format.dart';
 import '../../core/gerak.dart';
-import '../../core/komponen_ui.dart' show corakTapis;
+import '../../core/komponen_ui.dart' show KotakIkon, corakTapis;
 import '../../core/models/preloved.dart';
 import '../../core/theme.dart';
 import '../../core/widgets.dart';
 import 'preloved_repository.dart';
 
-/// Ikon dan warna lembut tiap kategori, dipakai di deret kategori.
-const gayaKategori = <String, ({IconData ikon, Color latar, Color warna})>{
-  'Pakaian': (ikon: Icons.checkroom_outlined, latar: Color(0xFFFCE7F3), warna: Color(0xFFBE185D)),
-  'Elektronik': (ikon: Icons.devices_other_outlined, latar: Color(0xFFE0F2FE), warna: Color(0xFF0369A1)),
-  'Perabot': (ikon: Icons.chair_outlined, latar: Color(0xFFFEF3C7), warna: Color(0xFFB45309)),
-  'Buku': (ikon: Icons.menu_book_outlined, latar: Color(0xFFEDE9FE), warna: Color(0xFF6D28D9)),
-  'Mainan': (ikon: Icons.toys_outlined, latar: Color(0xFFFFEDD5), warna: Color(0xFFC2410C)),
-  'Kerajinan Daur Ulang': (ikon: Icons.recycling_outlined, latar: Color(0xFFDCFCE7), warna: Color(0xFF15803D)),
-  'Lainnya': (ikon: Icons.category_outlined, latar: Color(0xFFF1F5F9), warna: Color(0xFF475569)),
+/// Ilustrasi 3D tiap kategori di assets/illustrations/ikon.
+const gambarKategori = <String, String>{
+  'Pakaian': 'pakaian',
+  'Elektronik': 'elektronik',
+  'Perabot': 'perabot',
+  'Buku': 'buku',
+  'Mainan': 'mainan',
+  'Kerajinan Daur Ulang': 'kerajinan',
+  'Lainnya': 'lainnya',
 };
 
 final _barangHematProvider = FutureProvider.autoDispose<List<BarangPreloved>>(
@@ -76,7 +76,7 @@ class PrelovedTabState extends ConsumerState<PrelovedTab> {
         ),
         SliverToBoxAdapter(
           child: SizedBox(
-            height: 104,
+            height: 122,
             child: ListView(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.fromLTRB(14, 14, 14, 4),
@@ -95,7 +95,7 @@ class PrelovedTabState extends ConsumerState<PrelovedTab> {
             child: DeretBarang(
               judul: 'Favoritmu',
               ikon: Icons.favorite,
-              warnaIkon: Colors.red.shade600,
+              warnaIkon: TemaAplikasi.hijau,
               barang: favorit.value!,
               onLihatSemua: () => _buka('/warga/preloved/favorit'),
               onKembali: segarkan,
@@ -219,33 +219,28 @@ class _TombolKategori extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) {
-    final gaya = gayaKategori[kategori] ?? gayaKategori['Lainnya']!;
-    return SizedBox(
-      width: 78,
-      child: TekanSkala(
-        child: InkWell(
-          borderRadius: BorderRadius.circular(14),
-          onTap: onTap,
-          child: Column(children: [
-          Container(
-            width: 52,
-            height: 52,
-            decoration: BoxDecoration(color: gaya.latar, borderRadius: BorderRadius.circular(18)),
-            child: Icon(gaya.ikon, color: gaya.warna, size: 26),
+  Widget build(BuildContext context) => SizedBox(
+        width: 84,
+        child: TekanSkala(
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 5),
+              child: Column(children: [
+                KotakIkon(gambar: gambarKategori[kategori] ?? 'lainnya', ukuran: 70),
+                const SizedBox(height: 6),
+                Text(
+                  kategori == 'Kerajinan Daur Ulang' ? 'Daur ulang' : kategori,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+                ),
+              ]),
+            ),
           ),
-          const SizedBox(height: 6),
-          Text(
-            kategori == 'Kerajinan Daur Ulang' ? 'Daur ulang' : kategori,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-          ),
-          ]),
         ),
-      ),
-    );
-  }
+      );
 }
 
 class _AjakanJual extends StatelessWidget {
@@ -547,7 +542,7 @@ class _KartuBarangState extends ConsumerState<KartuBarang> {
         color: Colors.white,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
-          side: const BorderSide(color: Color(0xFFD7EEDF), width: 1.5),
+          side: const BorderSide(color: TemaAplikasi.garisHijau, width: 1.5),
         ),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
@@ -592,7 +587,7 @@ class _KartuBarangState extends ConsumerState<KartuBarang> {
                       child: Text(b.kecamatan, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11.5, color: TemaAplikasi.redup)),
                     ),
                   ]),
-                  const Divider(height: 14, color: Color(0xFFE6F2EA)),
+                  const Divider(height: 14, color: TemaAplikasi.hijauLembut),
                   Row(children: [
                     Expanded(
                       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -637,7 +632,7 @@ class TombolFavorit extends StatelessWidget {
       label: aktif ? 'Hapus dari favorit' : 'Simpan ke favorit',
       excludeSemantics: true,
       child: Material(
-        color: aktif ? const Color(0xFFFDE8EC) : TemaAplikasi.hijau,
+        color: aktif ? TemaAplikasi.limau : TemaAplikasi.hijau,
         borderRadius: BorderRadius.circular(12),
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
@@ -651,7 +646,7 @@ class TombolFavorit extends StatelessWidget {
               duration: const Duration(milliseconds: 320),
               curve: Curves.easeOutBack,
               builder: (_, skala, ikon) => Transform.scale(scale: skala, child: ikon),
-              child: Icon(aktif ? Icons.favorite : Icons.favorite_border, size: 20, color: aktif ? Colors.red.shade600 : Colors.white),
+              child: Icon(aktif ? Icons.favorite : Icons.favorite_border, size: 20, color: aktif ? TemaAplikasi.hijauPekat : Colors.white),
             ),
           ),
         ),

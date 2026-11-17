@@ -240,14 +240,14 @@ class _BentorBerandaPageState extends ConsumerState<BentorBerandaPage> {
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFFDEFDC),
+                            color: const Color(0xFFFEF3C7),
                             borderRadius: BorderRadius.circular(18),
                           ),
                           child: const Row(
                             children: [
                               Icon(
                                 Icons.pause_circle_outline,
-                                color: Color(0xFF9A3412),
+                                color: TemaAplikasi.kuningTua,
                               ),
                               SizedBox(width: 8),
                               Expanded(

@@ -262,11 +262,11 @@ class LabelStatus extends StatelessWidget {
 }
 
 Color warnaStatus(String status) => switch (status) {
-      'diajukan' => Colors.orange.shade800,
-      'dijadwalkan' || 'menuju' => Colors.blue.shade700,
-      'diambil' => Colors.indigo,
+      'diajukan' => TemaAplikasi.kuningTua,
+      'dijadwalkan' || 'menuju' => const Color(0xFF2563EB),
+      'diambil' => TemaAplikasi.hijauPekat,
       'selesai' || 'disetujui' || 'siaga' => TemaAplikasi.hijau,
       'ditolak' || 'dibatalkan' || 'nonaktif' => Colors.red.shade700,
-      'bertugas' => Colors.blue.shade700,
+      'bertugas' => const Color(0xFF2563EB),
       _ => Colors.grey.shade700,
     };

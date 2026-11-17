@@ -186,8 +186,8 @@ class KartuAjakan extends StatelessWidget {
     required this.judul,
     required this.keterangan,
     required this.onTap,
-    this.warna = const Color(0xFFC2185B),
-    this.latar = const Color(0xFFFDEBF1),
+    this.warna = TemaAplikasi.hijau,
+    this.latar = TemaAplikasi.hijauLembut,
   });
   final IconData ikon;
   final String judul;
@@ -614,4 +614,68 @@ class SegmenReferensi<T> extends StatelessWidget {
       ],
     ),
   );
+}
+
+/// Kotak putih berisi ilustrasi 3D dengan pita hijau bermotif tapis yang melengkung di bawah.
+class KotakIkon extends StatelessWidget {
+  const KotakIkon({super.key, required this.gambar, this.ukuran});
+
+  /// Nama berkas di assets/illustrations/ikon tanpa .png
+  final String gambar;
+
+  /// Lebar kotak; kosong berarti mengikuti ruang yang tersedia
+  final double? ukuran;
+
+  @override
+  Widget build(BuildContext context) {
+    final kotak = LayoutBuilder(
+      builder: (context, batas) {
+        final sisi = batas.maxWidth;
+        return Container(
+          clipBehavior: Clip.antiAlias,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(sisi * .26),
+            border: Border.all(color: TemaAplikasi.garisHijau, width: 1.5),
+            boxShadow: [
+              BoxShadow(color: TemaAplikasi.hijauPekat.withValues(alpha: .07), blurRadius: 12, offset: const Offset(0, 5)),
+            ],
+          ),
+          child: Stack(
+            children: [
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                height: sisi * .3,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: TemaAplikasi.hijau,
+                    borderRadius: BorderRadius.vertical(top: Radius.elliptical(sisi * .9, sisi * .22)),
+                    image: const DecorationImage(
+                      image: AssetImage('assets/branding/corak-tapis.png'),
+                      repeat: ImageRepeat.repeat,
+                      scale: 4,
+                      opacity: .45,
+                    ),
+                  ),
+                ),
+              ),
+              Align(
+                alignment: const Alignment(0, -.3),
+                child: Image.asset(
+                  'assets/illustrations/ikon/$gambar.png',
+                  width: sisi * .7,
+                  height: sisi * .7,
+                  fit: BoxFit.contain,
+                  excludeFromSemantics: true,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+    return ukuran == null ? AspectRatio(aspectRatio: 1, child: kotak) : SizedBox.square(dimension: ukuran, child: kotak);
+  }
 }

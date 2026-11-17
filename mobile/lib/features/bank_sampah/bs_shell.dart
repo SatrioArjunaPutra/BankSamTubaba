@@ -331,11 +331,11 @@ class BerandaBs extends ConsumerWidget {
                           Row(
                             children: [
                               CircleAvatar(
-                                backgroundColor: const Color(0xFFE8F1FD),
+                                backgroundColor: TemaAplikasi.hijauLembut,
                                 child: Text(
                                   p.warga?.name.substring(0, 1) ?? 'W',
                                   style: const TextStyle(
-                                    color: Color(0xFF1D4ED8),
+                                    color: TemaAplikasi.hijau,
                                     fontWeight: FontWeight.w700,
                                   ),
                                 ),
@@ -425,7 +425,7 @@ class BerandaBs extends ConsumerWidget {
                   'Jemput baru',
                   angka(d.jemputDiajukan),
                   Icons.notifications_active_outlined,
-                  warna: d.jemputDiajukan > 0 ? Colors.orange.shade800 : null,
+                  warna: d.jemputDiajukan > 0 ? TemaAplikasi.kuningTua : null,
                   onTap: () => keTab(2),
                 ),
                 kotak(
@@ -439,7 +439,7 @@ class BerandaBs extends ConsumerWidget {
                   '${d.penarikanDiajukan} · ${rupiah(d.totalPenarikanDiajukan)}',
                   Icons.account_balance_wallet_outlined,
                   warna: d.penarikanDiajukan > 0
-                      ? Colors.orange.shade800
+                      ? TemaAplikasi.kuningTua
                       : null,
                   onTap: () => context.push('/bs/penarikan'),
                 ),

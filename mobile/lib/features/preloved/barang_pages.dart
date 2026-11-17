@@ -143,7 +143,7 @@ class _DetailBarangPageState extends ConsumerState<DetailBarangPage> {
                   child: Row(children: [
                     OutlinedButton.icon(
                       onPressed: barang.tersedia || barang.difavoritkan ? () => _ubahFavorit(barang) : null,
-                      icon: Icon(barang.difavoritkan ? Icons.favorite : Icons.favorite_border, color: barang.difavoritkan ? Colors.red.shade600 : null),
+                      icon: Icon(barang.difavoritkan ? Icons.favorite : Icons.favorite_border, color: barang.difavoritkan ? TemaAplikasi.hijau : null),
                       label: Text(barang.jumlahFavorit > 0 ? '${barang.jumlahFavorit}' : 'Simpan'),
                     ),
                     const SizedBox(width: 12),
@@ -214,7 +214,7 @@ class _DetailBarangPageState extends ConsumerState<DetailBarangPage> {
                   const SizedBox(width: 4),
                   Expanded(child: Text(b.kecamatan, style: const TextStyle(color: TemaAplikasi.redup))),
                   if (b.jumlahFavorit > 0) ...[
-                    Icon(Icons.favorite, size: 16, color: Colors.red.shade600),
+                    const Icon(Icons.favorite, size: 16, color: TemaAplikasi.hijau),
                     const SizedBox(width: 4),
                     Text('${b.jumlahFavorit} menyimpan', style: const TextStyle(color: TemaAplikasi.redup)),
                   ],

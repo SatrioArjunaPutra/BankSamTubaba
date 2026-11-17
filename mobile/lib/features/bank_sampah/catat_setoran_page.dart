@@ -365,7 +365,7 @@ class _FormSetoranState extends State<FormSetoran> {
     return Column(children:[
       Expanded(child:ListView(padding:const EdgeInsets.fromLTRB(20,12,20,20),children:[
         Card(shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(22),side:const BorderSide(color:TemaAplikasi.garis)),child:Padding(padding:const EdgeInsets.all(12),child:Row(children:[
-          const CircleAvatar(radius:22,backgroundColor:Color(0xFFE6EEFB),child:Text('W',style:TextStyle(fontWeight:FontWeight.w800,color:Color(0xFF1D4ED8)))),
+          const CircleAvatar(radius:22,backgroundColor:TemaAplikasi.hijauLembut,child:Text('W',style:TextStyle(fontWeight:FontWeight.w800,color:TemaAplikasi.hijau))),
           const SizedBox(width:12),
           Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text(widget.warga?.name??'Pilih warga',style:const TextStyle(fontSize:15,fontWeight:FontWeight.w700)),Text(widget.warga==null?'Cari nama, nomor HP, atau email':'No. nasabah ${widget.warga!.id} · saldo ${rupiah(widget.warga!.saldo)}',style:const TextStyle(fontSize:11,color:TemaAplikasi.redup))])),
           if(!widget.wargaTerkunci) TextButton(onPressed:widget.menyimpan?null:_pilihWarga,style:TextButton.styleFrom(backgroundColor:TemaAplikasi.latar,foregroundColor:TemaAplikasi.teks,shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(12),side:const BorderSide(color:TemaAplikasi.garis))),child:Text(widget.warga==null?'Pilih':'Ganti')),
@@ -381,9 +381,9 @@ class _FormSetoranState extends State<FormSetoran> {
             final aktif=(b.beratKg??0)>0;
             return Padding(padding:const EdgeInsets.only(bottom:8),child:Container(
               padding:const EdgeInsets.symmetric(horizontal:10,vertical:12),
-              decoration:BoxDecoration(color:Colors.white,borderRadius:BorderRadius.circular(20),border:Border.all(color:aktif?const Color(0xFFB7D6AB):TemaAplikasi.garis)),
+              decoration:BoxDecoration(color:Colors.white,borderRadius:BorderRadius.circular(20),border:Border.all(color:aktif?TemaAplikasi.hijauPucat:TemaAplikasi.garis)),
               child:Row(children:[
-                Container(width:44,height:44,padding:const EdgeInsets.all(4),decoration:BoxDecoration(color:aktif?const Color(0xFFEDF4D6):TemaAplikasi.hijauLembut,borderRadius:BorderRadius.circular(14)),child:IlustrasiReferensi(ilustrasiJenis(h?.nama??''))),
+                Container(width:44,height:44,padding:const EdgeInsets.all(4),decoration:BoxDecoration(color:aktif?TemaAplikasi.hijauLembut:TemaAplikasi.hijauLembut,borderRadius:BorderRadius.circular(14)),child:IlustrasiReferensi(ilustrasiJenis(h?.nama??''))),
                 const SizedBox(width:10),
                 Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text(h?.nama??'Jenis sampah',style:const TextStyle(fontSize:13,fontWeight:FontWeight.w700)),const SizedBox(height:3),Text(h?.hargaPerKg==null?'Harga belum diatur':'${rupiah(h!.hargaPerKg)}/kg',style:const TextStyle(fontSize:11,color:TemaAplikasi.redup))])),
                 const SizedBox(width:5),
@@ -397,7 +397,7 @@ class _FormSetoranState extends State<FormSetoran> {
             ));
           }),
         if(widget.baris.length<widget.daftarHarga.length)
-          OutlinedButton.icon(onPressed:widget.menyimpan?null:_tambah,icon:const Icon(Icons.add,size:18),label:const Text('Tambah jenis sampah'),style:OutlinedButton.styleFrom(minimumSize:const Size.fromHeight(48),side:const BorderSide(color:Color(0xFFC9D2BE)),shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(18)))),
+          OutlinedButton.icon(onPressed:widget.menyimpan?null:_tambah,icon:const Icon(Icons.add,size:18),label:const Text('Tambah jenis sampah'),style:OutlinedButton.styleFrom(minimumSize:const Size.fromHeight(48),side:const BorderSide(color:TemaAplikasi.garisHijau),shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(18)))),
       ])),
       Container(
         padding:const EdgeInsets.fromLTRB(20,14,20,12),

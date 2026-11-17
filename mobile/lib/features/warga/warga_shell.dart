@@ -176,27 +176,23 @@ class BerandaWarga extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _MenuKotak(
-                        ikon: Icons.recycling,
                         label: 'Setor',
-                        warna: TemaAplikasi.hijau,
+                        gambar: 'setor',
                         onTap: () => context.push('/warga/cari'),
                       ),
                       _MenuKotak(
-                        ikon: Icons.volunteer_activism_outlined,
                         label: 'Donasi',
-                        warna: const Color(0xFFC2185B),
+                        gambar: 'donasi',
                         onTap: () => context.push('/warga/donasi'),
                       ),
                       _MenuKotak(
-                        ikon: Icons.local_shipping_outlined,
                         label: 'Status jemput',
-                        warna: const Color(0xFFB45309),
+                        gambar: 'jemput',
                         onTap: bukaPenjemputan,
                       ),
                       _MenuKotak(
-                        ikon: Icons.storefront_outlined,
                         label: 'Preloved',
-                        warna: const Color(0xFF0369A1),
+                        gambar: 'preloved',
                         onTap: bukaPreloved,
                       ),
                     ],
@@ -212,7 +208,7 @@ class BerandaWarga extends ConsumerWidget {
                     judul: 'Sampah menumpuk? Minta dijemput dari rumah',
                     isi: 'Pilih bank sampah, tandai lokasi, lalu bentor datang menjemput.',
                     tombol: 'Minta jemput',
-                    warna: const [Color(0xFF0E3B26), Color(0xFF15803D)],
+                    warna: const [TemaAplikasi.hijauPekat, TemaAplikasi.hijau],
                     ikon: Icons.local_shipping_outlined,
                     onTap: mintaJemput,
                   ),
@@ -226,7 +222,7 @@ class BerandaWarga extends ConsumerWidget {
                     judul: 'Barang tak terpakai bisa jadi uang',
                     isi: 'Foto barangnya, beri harga, dan tunggu pembeli menghubungimu.',
                     tombol: 'Jual barang',
-                    warna: const [Color(0xFFE11D48), Color(0xFFF97316)],
+                    warna: const [TemaAplikasi.hijau, TemaAplikasi.hijauSedang],
                     ikon: Icons.sell_outlined,
                     onTap: () => context.push('/warga/preloved/jual'),
                   ),
@@ -267,7 +263,7 @@ class _HeaderSaldo extends ConsumerWidget {
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: const Color(0xFFD7EEDF), width: 1.5),
+                border: Border.all(color: TemaAplikasi.garisHijau, width: 1.5),
                 boxShadow: [
                   BoxShadow(
                     color: TemaAplikasi.hijauPekat.withValues(alpha: .12),
@@ -293,7 +289,8 @@ class _HeaderSaldo extends ConsumerWidget {
                               color: TemaAplikasi.hijauLembut,
                               borderRadius: BorderRadius.circular(14),
                             ),
-                            child: const Icon(Icons.savings_outlined, color: TemaAplikasi.hijau),
+                            padding: const EdgeInsets.all(5),
+                            child: Image.asset('assets/illustrations/ikon/dompet.png', excludeFromSemantics: true),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
@@ -320,7 +317,7 @@ class _HeaderSaldo extends ConsumerWidget {
                           ),
                         ],
                       ),
-                      const Divider(height: 26, color: Color(0xFFE6F2EA)),
+                      const Divider(height: 26, color: TemaAplikasi.hijauLembut),
                       Row(
                         children: [
                           const Expanded(
@@ -362,13 +359,12 @@ class _HeaderSaldo extends ConsumerWidget {
   }
 }
 
-/// Menu kotak putih dengan pita bermotif tapis di bagian bawah.
+/// Menu berupa kotak ilustrasi 3D dengan label di bawahnya.
 class _MenuKotak extends StatelessWidget {
-  const _MenuKotak({required this.ikon, required this.label, required this.warna, required this.onTap});
+  const _MenuKotak({required this.gambar, required this.label, required this.onTap});
 
-  final IconData ikon;
+  final String gambar;
   final String label;
-  final Color warna;
   final VoidCallback onTap;
 
   @override
@@ -377,53 +373,20 @@ class _MenuKotak extends StatelessWidget {
           child: InkWell(
             borderRadius: BorderRadius.circular(18),
             onTap: onTap,
-            child: Column(
-              children: [
-                AspectRatio(
-                  aspectRatio: 1,
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 6),
-                    clipBehavior: Clip.antiAlias,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: const Color(0xFFD7EEDF), width: 1.5),
-                    ),
-                    child: Stack(
-                      children: [
-                        Positioned(
-                          left: 0,
-                          right: 0,
-                          bottom: 0,
-                          height: 16,
-                          child: Container(
-                            decoration: const BoxDecoration(
-                              color: TemaAplikasi.hijau,
-                              image: DecorationImage(
-                                image: AssetImage('assets/branding/corak-tapis.png'),
-                                repeat: ImageRepeat.repeat,
-                                scale: 3,
-                                opacity: .5,
-                              ),
-                            ),
-                          ),
-                        ),
-                        Align(
-                          alignment: const Alignment(0, -.25),
-                          child: Icon(ikon, color: warna, size: 28),
-                        ),
-                      ],
-                    ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 5),
+              child: Column(
+                children: [
+                  KotakIkon(gambar: gambar),
+                  const SizedBox(height: 8),
+                  Text(
+                    label,
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, height: 1.2),
                   ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  label,
-                  textAlign: TextAlign.center,
-                  maxLines: 2,
-                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, height: 1.2),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -475,7 +438,7 @@ class _BannerAjakan extends StatelessWidget {
                       spacing: 8,
                       runSpacing: 6,
                       children: [
-                        _Label(label, latar: const Color(0xFFFACC15), warna: const Color(0xFF422006)),
+                        _Label(label, latar: TemaAplikasi.limau, warna: TemaAplikasi.hijauPekat),
                         _Label(labelKedua, latar: Colors.white.withValues(alpha: .18), warna: Colors.white),
                       ],
                     ),
@@ -901,7 +864,7 @@ class KartuSetoran extends StatelessWidget {
             color: s.dibatalkan
                 ? TemaAplikasi.latar
                 : s.donasi
-                ? const Color(0xFFFDEBF1)
+                ? TemaAplikasi.garisHijau
                 : TemaAplikasi.hijauLembut,
             borderRadius: BorderRadius.circular(13),
           ),
@@ -915,7 +878,7 @@ class KartuSetoran extends StatelessWidget {
             color: s.dibatalkan
                 ? TemaAplikasi.redup
                 : s.donasi
-                ? const Color(0xFFC2185B)
+                ? TemaAplikasi.hijauPekat
                 : TemaAplikasi.hijau,
           ),
         ),
@@ -941,7 +904,7 @@ class KartuSetoran extends StatelessWidget {
             color: s.dibatalkan
                 ? TemaAplikasi.redup
                 : s.donasi
-                ? const Color(0xFFC2185B)
+                ? TemaAplikasi.hijauPekat
                 : TemaAplikasi.hijau,
           ),
         ),
